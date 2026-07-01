@@ -1,0 +1,25 @@
+{
+  "name": "inventorydemo01",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "concurrently \"npm --prefix apps/api run dev\" \"npm --prefix apps/web run dev\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Themetheo/inventorydemo01.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Themetheo/inventorydemo01/issues"
+  },
+  "homepage": "https://github.com/Themetheo/inventorydemo01#readme",
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  }
+}
