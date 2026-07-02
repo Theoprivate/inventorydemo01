@@ -1,55 +1,30 @@
-# Inventory Demo 01
+# Restaurant Inventory MVP
 
-ระบบ Restaurant ERP ตัวอย่าง ประกอบด้วย Next.js frontend และ Fastify API
+ระบบ Inventory สำหรับร้านอาหารแบบ end-to-end ใช้ Next.js, Fastify และ Google Sheets
+ภายใน pnpm workspace/Turborepo
 
 ## เริ่มใช้งาน
 
 ```bash
-npm install
-npm --prefix apps/web install
-npm --prefix apps/api install
-cp apps/api/.env.example apps/api/.env # ทำเฉพาะครั้งแรกที่ยังไม่มี .env
-npm run dev
+pnpm install
+cp apps/api/.env.example apps/api/.env
+pnpm sheets:check
+pnpm dev
 ```
 
-เปิด http://localhost:3000 ระบบจะพาไปหน้า `/login`
+เปิด `http://localhost:3000/login` โดย API รันที่พอร์ต 4000
 
-บัญชี development เริ่มต้น:
-
-- Username: `admin`
-- Password: `admin123`
-
-ค่าบัญชีและ session อยู่ใน `apps/api/.env` ซึ่งไม่ถูก commit ขึ้น Git ดูรูปแบบได้จาก `apps/api/.env.example`
-
-## ใช้ Google Sheets
-
-1. เปลี่ยน `AUTH_MODE=sheets` ใน `apps/api/.env`
-2. ตั้ง `GOOGLE_SHEET_ID` และ `GOOGLE_SERVICE_ACCOUNT_KEY_FILE` ใน `apps/api/.env`
-   (หรือใช้ `GOOGLE_SERVICE_ACCOUNT_EMAIL` และ `GOOGLE_PRIVATE_KEY` สำหรับระบบ deploy)
-3. แชร์ Spreadsheet ให้ service account มีสิทธิ์อ่าน
-4. สร้างชีตชื่อ `Users` โดยแถวแรกเป็นหัวตาราง และคอลัมน์ A-F เป็น:
-
-```text
-userId | username | password | displayName | role | isActive
-```
-
-ค่า `isActive` ต้องเป็น `TRUE` จึงจะเข้าสู่ระบบได้
-
-> โหมด Sheets ปัจจุบันเป็น MVP และเก็บรหัสผ่านแบบข้อความธรรมดา ไม่ควรใช้กับ production ก่อนเปลี่ยนเป็น password hashing และฐานข้อมูลที่เหมาะสม
-
-## URL หลัก
-
-- Frontend: http://localhost:3000
-- Login: http://localhost:3000/login
-- Dashboard: http://localhost:3000/dashboard
-- API health: http://localhost:4000/health
-
-หน้าเว็บเรียก API ผ่าน same-origin path `/api` ซึ่ง Next.js proxy ไปยัง API
-ภายในที่พอร์ต 4000 จึงใช้งานได้ทั้ง localhost และ Codespaces URL
-
-## ตรวจสอบก่อน deploy
+คำสั่งตรวจสอบ:
 
 ```bash
-npm test
-npm run build
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm build
 ```
+
+รายละเอียด architecture, Google Sheets schema, Service Account, Codespaces และ demo flow
+อยู่ที่ [docs/inventory-mvp.md](docs/inventory-mvp.md)
+
+ไฟล์รูปสินค้าแบบ local วางที่ `apps/web/public/images/items/` และบันทึกใน Sheet เช่น
+`/images/items/water.webp`

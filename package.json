@@ -1,12 +1,17 @@
 {
   "name": "inventorydemo01",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Restaurant inventory MVP",
+  "private": true,
+  "packageManager": "pnpm@10.32.1",
   "scripts": {
-    "dev": "concurrently \"npm --prefix apps/api run dev\" \"npm --prefix apps/web run dev\"",
-    "build": "npm --prefix apps/api run build && npm --prefix apps/web run build",
-    "test": "npm --prefix apps/api test && npm --prefix apps/web run build"
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "typecheck": "turbo typecheck",
+    "sheets:check": "pnpm --filter @inventory/api sheets:check",
+    "sheets:check-requests": "pnpm --filter @inventory/api sheets:check-requests"
   },
   "repository": {
     "type": "git",
@@ -21,6 +26,6 @@
   },
   "homepage": "https://github.com/Themetheo/inventorydemo01#readme",
   "devDependencies": {
-    "concurrently": "^10.0.3"
+    "turbo": "^2.5.8"
   }
 }

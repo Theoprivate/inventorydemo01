@@ -8,6 +8,10 @@ node_modules/
 dist/
 **/dist/
 out/
+.turbo/
+**/.turbo/
+*.tsbuildinfo
+**/*.tsbuildinfo
 
 # environment files
 .env

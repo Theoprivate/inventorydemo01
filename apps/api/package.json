@@ -1,12 +1,16 @@
 {
-  "name": "api",
+  "name": "@inventory/api",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "npm run build && node --test dist/server.test.js",
+    "test": "vitest run",
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "sheets:check": "tsx scripts/check-google-sheets.ts",
+    "sheets:check-requests": "tsx scripts/check-request-flow.ts",
     "start": "node dist/server.js"
   },
   "keywords": [],
@@ -15,13 +19,18 @@
   "type": "module",
   "dependencies": {
     "@fastify/cors": "^11.2.0",
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/jwt": "^10.0.0",
+    "argon2": "^0.44.0",
     "dotenv": "^17.4.2",
     "fastify": "^5.9.0",
-    "googleapis": "^173.0.0"
+    "googleapis": "^173.0.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^26.0.1",
     "tsx": "^4.22.4",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.4"
   }
 }

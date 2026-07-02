@@ -19,3 +19,12 @@ button,
 input {
   font: inherit;
 }
+
+.btn-primary { min-height: 44px; background: #18181b; color: white; padding: .65rem 1rem; font-weight: 800; border: 1px solid #18181b; }
+.btn-primary:hover { background: #dc2626; border-color: #dc2626; }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn-secondary { min-height: 44px; background: white; color: #18181b; padding: .55rem .9rem; font-weight: 800; border: 1px solid #18181b; }
+.btn-secondary:hover { background: #18181b; color: white; }
+.field { min-height: 44px; width: 100%; border: 1px solid #a1a1aa; background: white; padding: .65rem .75rem; outline: none; }
+.field:focus { border-color: #18181b; box-shadow: 3px 3px 0 #ef4444; }
+.panel { border: 1px solid #18181b; background: white; box-shadow: 6px 6px 0 #18181b; }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
   title: "Restaurant ERP",
@@ -12,7 +13,7 @@ export default function RootLayout({
 }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="th">
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning><Providers>{children}</Providers></body>
     </html>
   );
 }
