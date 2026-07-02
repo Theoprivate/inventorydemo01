@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "concurrently \"npm --prefix apps/api run dev\" \"npm --prefix apps/web run dev\""
+    "dev": "concurrently \"npm --prefix apps/api run dev\" \"npm --prefix apps/web run dev\"",
+    "build": "npm --prefix apps/api run build && npm --prefix apps/web run build",
+    "test": "npm --prefix apps/api test && npm --prefix apps/web run build"
   },
   "repository": {
     "type": "git",

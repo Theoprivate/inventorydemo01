@@ -6,13 +6,13 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "next dev -p 3000",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start -p 3000"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.2",
     "next": "^16.2.9",

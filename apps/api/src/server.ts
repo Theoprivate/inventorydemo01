@@ -1,3 +1,4 @@
+import "dotenv/config";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import {
   createHmac,
@@ -47,6 +48,8 @@ interface CachedAccessToken {
   expiresAt: number;
 }
 
+type AuthMode = "local" | "sheets";
+
 const SESSION_COOKIE_NAME = "restaurant_session";
 const SESSION_MAX_AGE_SECONDS = 86_400;
 const GOOGLE_SCOPE =
@@ -54,6 +57,17 @@ const GOOGLE_SCOPE =
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
 let cachedGoogleAccessToken: CachedAccessToken | null = null;
+
+function getAuthMode(): AuthMode {
+  const defaultMode = process.env.NODE_ENV === "production" ? "sheets" : "local";
+  const value = (process.env.AUTH_MODE ?? defaultMode).trim().toLowerCase();
+
+  if (value !== "local" && value !== "sheets") {
+    throw new Error("AUTH_MODE must be either local or sheets");
+  }
+
+  return value;
+}
 
 function requireEnvironmentVariable(name: string): string {
   const value = process.env[name]?.trim();
@@ -330,6 +344,23 @@ async function getSheetUsers(): Promise<SheetUser[]> {
   });
 }
 
+function getLocalUsers(): SheetUser[] {
+  return [
+    {
+      userId: process.env.DEV_AUTH_USER_ID?.trim() || "U001",
+      username: process.env.DEV_AUTH_USERNAME?.trim() || "admin",
+      password: process.env.DEV_AUTH_PASSWORD || "admin123",
+      displayName: process.env.DEV_AUTH_DISPLAY_NAME?.trim() || "ผู้ดูแลระบบ",
+      role: process.env.DEV_AUTH_ROLE?.trim() || "admin",
+      isActive: true,
+    },
+  ];
+}
+
+async function getUsers(): Promise<SheetUser[]> {
+  return getAuthMode() === "sheets" ? getSheetUsers() : getLocalUsers();
+}
+
 function sessionCookie(token: string): string {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
 
@@ -354,7 +385,7 @@ function isLoginBody(value: unknown): value is LoginBody {
   return typeof body.username === "string" && typeof body.password === "string";
 }
 
-const fastify = Fastify({ logger: true });
+export const fastify = Fastify({ logger: true });
 const frontendOrigin = process.env.FRONTEND_ORIGIN ?? "http://localhost:3000";
 
 fastify.addHook(
@@ -373,6 +404,7 @@ fastify.options("/*", async (_request, reply) => reply.code(204).send());
 fastify.get("/health", async () => ({
   ok: true,
   service: "restaurant-api",
+  authMode: getAuthMode(),
 }));
 
 fastify.post("/auth/login", async (request, reply) => {
@@ -394,7 +426,7 @@ fastify.post("/auth/login", async (request, reply) => {
   }
 
   try {
-    const users = await getSheetUsers();
+    const users = await getUsers();
 
     // MVP only: production should use hashed passwords and a real database.
     const matchedUser = users.find(
@@ -423,7 +455,7 @@ fastify.post("/auth/login", async (request, reply) => {
 
     return reply.send({ ok: true, user });
   } catch (error) {
-    request.log.error({ error }, "Login failed while reading Google Sheets");
+    request.log.error({ error }, "Login failed while loading users");
 
     return reply.code(502).send({
       ok: false,
@@ -478,4 +510,6 @@ async function start(): Promise<void> {
   }
 }
 
-void start();
+if (process.env.NODE_ENV !== "test") {
+  void start();
+}
