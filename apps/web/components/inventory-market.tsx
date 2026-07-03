@@ -2,16 +2,17 @@
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { ItemImage } from "./item-image";
+import { EmptyState, GameButton, GamePanel, StatusBadge } from "./page-kit";
 import type { RequestableItem } from "../lib/types";
 
 const focusRing = "focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#a85f36] focus-visible:ring-offset-2";
 
 export function PixelPanel({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-[7px] border border-[#d5ae73] bg-[#fff7e6] shadow-[3px_4px_0_#d0aa74] ${className}`}>{children}</div>;
+  return <GamePanel className={className}>{children}</GamePanel>;
 }
 
 export function PixelButton({ className = "", children, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
-  return <button className={`market-button min-h-11 rounded-[5px] border-2 border-[#4a2a16] bg-[#5b361f] px-4 py-2 font-black text-[#fff0ce] shadow-[0_3px_0_#301b0f] transition-[transform,box-shadow,background-color] duration-100 hover:-translate-y-0.5 hover:bg-[#754327] active:translate-y-[3px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-50 ${focusRing} ${className}`} {...props}>{children}</button>;
+  return <GameButton className={`market-button ${className}`} {...props}>{children}</GameButton>;
 }
 
 export function PixelTab({ label, code, count, active, onClick }: { label: string; code: string; count: number; active: boolean; onClick: () => void }) {
@@ -52,15 +53,11 @@ export function ItemMarketCard({ item, selected, onToggle }: { item: Requestable
 }
 
 export function StatusChip({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "danger" }) {
-  return <span className={`inline-flex min-h-6 items-center rounded-md border px-2 text-[10px] font-black shadow-sm ${tone === "danger" ? "border-[#98542f] bg-[#a96339] text-white" : "border-[#d4b88d] bg-[#f4e3c5] text-[#63472f]"}`}>{children}</span>;
+  return <StatusBadge tone={tone}>{children}</StatusBadge>;
 }
 
 export function EmptyStatePixel({ title, description }: { title: string; description: string }) {
-  return <PixelPanel className="px-5 py-12 text-center sm:py-16">
-    <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-2xl border border-[#d4b88d] bg-[#f4e3c5] shadow-[0_5px_0_#c39b70]" aria-hidden="true"><span className="font-mono text-3xl font-black text-[#80502f]">?</span></div>
-    <p className="text-lg font-black">{title}</p>
-    <p className="mt-1 text-sm text-stone-500">{description}</p>
-  </PixelPanel>;
+  return <EmptyState title={title} description={description} />;
 }
 
 export function SearchIcon() {

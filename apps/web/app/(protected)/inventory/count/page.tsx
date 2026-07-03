@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
-import { ErrorBox, PageHeader } from "@/components/page-kit";
+import { ActionBar, EmptyState, ErrorBox, FormField, GameButton, GamePanel, PageHeader, SelectableTile } from "@/components/page-kit";
 import { StockCountCard } from "@/components/stock-count-card";
 import { get, post } from "@/lib/api";
 import { filterValidItems } from "@/lib/items";
@@ -64,33 +64,33 @@ export default function CountPage() {
     save.mutate({ values: parsed, status });
   })();
 
-  return <div className="-m-4 min-h-[calc(100vh-4rem)] overflow-x-clip bg-[#fff2bd] p-4 sm:-m-6 sm:p-6 lg:-m-8 lg:p-8">
+  return <div className="min-w-0 overflow-x-clip">
     <PageHeader eyebrow="Stock Count · Multi Item" title="นับสต๊อก" description="เลือกตำแหน่ง แล้วกรอกยอดจริงจากการ์ดสินค้าในหน้าเดียว" />
 
-    <section className="border-b-2 border-black pb-6">
-      <p className="font-mono text-[10px] font-black tracking-[.2em] text-red-700">COUNT SETUP</p>
-      <h2 className="mb-3 mt-1 text-xl font-black">ตำแหน่งที่นับ</h2>
+    <section className="border-b-2 border-[var(--color-game-border-strong)] pb-6">
+      <p className="page-market-header__eyebrow">COUNT SETUP</p>
+      <h2 className="mb-3 mt-1 text-xl font-black text-[var(--color-game-brown)]">ตำแหน่งที่นับ</h2>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(180px,1fr))]">{locations.data?.filter((location) => location.isActive).map((location) => <ChoiceCard key={location.locationId} label={location.locationName} code={location.locationType} active={locationId === location.locationId} onClick={() => form.setValue("locationId", location.locationId)} />)}</div>
-      <h2 className="mb-3 mt-6 text-xl font-black">รอบการนับ</h2>
+      <h2 className="mb-3 mt-6 text-xl font-black text-[var(--color-game-brown)]">รอบการนับ</h2>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{rounds.map((round) => <ChoiceCard key={round} label={roundLabel(round)} code={round} active={countRound === round} onClick={() => form.setValue("countRound", round)} />)}</div>
-      <label className="mt-5 block max-w-3xl font-black">หมายเหตุทั้งรอบ<input className="field mt-2" placeholder="รายละเอียดรอบการนับ (ถ้ามี)" {...form.register("note")} /></label>
+      <FormField className="mt-5 max-w-3xl" label="หมายเหตุทั้งรอบ"><input placeholder="รายละเอียดรอบการนับ (ถ้ามี)" {...form.register("note")} /></FormField>
     </section>
 
     <section className="py-6">
-      <div className="mb-5 grid grid-cols-3 gap-3">{[["ตรงกัน", summary.equal], ["เกิน", summary.over], ["ขาด", summary.short]].map(([label, value]) => <div className="border-2 border-black bg-white p-3 text-center shadow-[3px_3px_0_#18130f]" key={String(label)}><p className="text-xs font-black text-stone-500">{label}</p><p className="mt-1 text-2xl font-black">{value}</p></div>)}</div>
-      {!locationId ? <div className="border-2 border-dashed border-black bg-white p-10 text-center font-black">เลือกตำแหน่งเพื่อเริ่มนับ</div> : !fields.fields.length ? <div className="border-2 border-dashed border-black bg-white p-10 text-center font-black">ไม่มีรายการที่ตั้งค่า Require Daily Count</div> : <div className="grid min-w-0 gap-5 xl:grid-cols-2">{fields.fields.map((field, index) => {
+      <div className="mb-5 grid grid-cols-3 gap-3">{[["ตรงกัน", summary.equal], ["เกิน", summary.over], ["ขาด", summary.short]].map(([label, value]) => <GamePanel className="p-3 text-center" key={String(label)}><p className="text-xs font-black text-[var(--color-game-muted)]">{label}</p><p className="mt-1 text-2xl font-black text-[var(--color-game-brown)]">{value}</p></GamePanel>)}</div>
+      {!locationId ? <EmptyState title="เลือกตำแหน่งเพื่อเริ่มนับ" description="เลือกรายการตำแหน่งจากส่วนตั้งค่าด้านบน" /> : !fields.fields.length ? <EmptyState title="ไม่มีรายการที่ต้องนับ" description="ยังไม่มีรายการที่ตั้งค่า Require Daily Count" /> : <div className="grid min-w-0 gap-5 xl:grid-cols-2">{fields.fields.map((field, index) => {
         const item = validItems.find((candidate) => candidate.itemId === field.itemId);
         if (!item) return null;
         return <StockCountCard key={field.id} item={item} systemQty={field.systemQty} countedQty={Number(watched[index]?.countedQty ?? 0)} note={watched[index]?.note ?? ""} onCountedQtyChange={(value) => form.setValue(`items.${index}.countedQty`, value, { shouldDirty: true, shouldValidate: true })} onNoteChange={(value) => form.setValue(`items.${index}.note`, value, { shouldDirty: true })} />;
       })}</div>}
       {save.error && <div className="mt-5"><ErrorBox error={save.error} /></div>}
-      <div className="sticky bottom-[4.5rem] z-20 mt-6 grid grid-cols-2 gap-3 border-2 border-black bg-[#fff9e5] p-3 shadow-[5px_5px_0_#18130f] lg:bottom-4"><button type="button" className="btn-secondary min-h-12" disabled={save.isPending || !fields.fields.length} onClick={() => submit("DRAFT")}>บันทึก Draft</button><button type="button" className="btn-primary min-h-12" disabled={save.isPending || !fields.fields.length} onClick={() => submit("COMPLETED")}>{save.isPending ? "กำลังบันทึก..." : "บันทึกทั้งหมด"}</button></div>
+      <ActionBar sticky className="bottom-[4.5rem] mt-6 lg:bottom-4"><GameButton variant="secondary" size="lg" className="flex-1" disabled={save.isPending || !fields.fields.length} onClick={() => submit("DRAFT")}>บันทึก Draft</GameButton><GameButton size="lg" className="flex-1" disabled={save.isPending || !fields.fields.length} onClick={() => submit("COMPLETED")}>{save.isPending ? "กำลังบันทึก..." : "บันทึกทั้งหมด"}</GameButton></ActionBar>
     </section>
   </div>;
 }
 
 function ChoiceCard({ label, code, active, onClick }: { label: string; code: string; active: boolean; onClick: () => void }) {
-  return <button type="button" aria-pressed={active} onClick={onClick} className={`min-h-20 min-w-0 border-2 border-black p-3 text-left shadow-[4px_4px_0_#18130f] ${active ? "bg-red-600 text-white" : "bg-white hover:bg-amber-100"}`}><span className="block truncate font-black">{label}</span><span className="mt-1 block truncate font-mono text-[9px] font-black tracking-wider opacity-60">{code}</span></button>;
+  return <SelectableTile selected={active} onClick={onClick} className="min-h-20 min-w-0 p-3"><span className="block truncate font-black">{label}</span><span className="mt-1 block truncate font-mono text-[9px] font-black tracking-wider opacity-60">{code}</span></SelectableTile>;
 }
 
 function roundLabel(round: typeof rounds[number]) {

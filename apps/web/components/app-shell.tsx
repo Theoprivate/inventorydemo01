@@ -26,7 +26,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (user.isLoading) return <FullState text="กำลังเปิดร้าน..." />;
   if (user.isError || !user.data) { router.replace("/login"); return <FullState text="กำลังกลับไปหน้าเข้าสู่ระบบ..." />; }
   const visible = menus.filter((menu) => menu.roles.includes(user.data.role));
-  return <div className="app-market min-h-screen text-[#3d281b] lg:grid lg:grid-cols-[264px_minmax(0,1fr)]">
+  return <div className="app-market min-h-screen text-[#3d281b] lg:grid lg:grid-cols-[220px_minmax(0,1fr)]">
     <aside className="market-sidebar hidden text-[#fff0ce] lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:overflow-y-auto">
       <Link href="/dashboard" className="market-brand block px-3 pb-2 pt-3 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-[#f3c269]">
         <ShopFacade />
@@ -41,7 +41,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex min-w-0 items-center gap-3"><PixelAvatar className="h-11 w-11 shrink-0" /><span className="grid h-7 min-w-9 place-items-center border-2 border-[#71331f] bg-[#b85d2e] px-1 font-mono text-[11px] font-black text-white shadow-[2px_2px_0_#71331f]" aria-hidden="true">P1</span><div className="min-w-0"><p className="truncate text-[15px] font-black leading-tight text-[#3d281b]">{user.data.displayName || user.data.username}</p><p className="mt-0.5 truncate text-[11px] font-bold text-[#765039]">{user.data.branchName} · {user.data.role}</p></div></div>
         <button className="market-logout" onClick={() => logout.mutate()} disabled={logout.isPending}><span aria-hidden="true">⇥</span> ออกจากระบบ</button>
       </header>
-      <main className="market-workspace mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-5">{children}</main>
+      <main className="market-workspace mx-auto w-full max-w-[1600px] px-6 pb-8 pt-5">{children}</main>
     </div>
     <nav className="market-mobile-nav fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-[#d6bd97] bg-[#fffaf0]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">{visible.map((m) => <Link key={m.href} href={m.href} className={`flex min-w-[84px] flex-1 flex-col items-center gap-1 px-2 py-2 text-center focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-[#a75d32] ${isMenuActive(path, m.href) ? "bg-[#ead5b5] text-[#754728]" : "text-[#796553]"}`}><MarketIcon name={m.icon} /><span className="text-[11px] font-bold">{m.label}</span></Link>)}</nav>
   </div>;

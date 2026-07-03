@@ -1,6 +1,94 @@
 "use client";
-import type { ReactNode } from "react";
-export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?: string; title: string; description?: string; actions?: ReactNode }) { return <header className="page-market-header mb-7 border-b-2 border-black pb-6"><div className="market-awning mb-5 h-2.5 border-2 border-black shadow-[3px_3px_0_#18130f]" aria-hidden="true"/><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div>{eyebrow && <p className="mb-1.5 font-mono text-[10px] font-black uppercase tracking-[.22em] text-red-700">{eyebrow} · MARKET ZONE</p>}<h1 className="text-3xl font-black leading-tight tracking-tight sm:text-4xl">{title}</h1>{description && <p className="mt-2 max-w-2xl text-sm font-medium text-stone-600">{description}</p>}</div>{actions && <div className="shrink-0">{actions}</div>}</div></header>; }
-export function ErrorBox({ error, retry }: { error: unknown; retry?: () => void }) { const code = process.env.NODE_ENV === "development" && error instanceof Error && "code" in error && typeof error.code === "string" ? error.code : ""; return <div role="alert" className="border-2 border-red-700 bg-red-50 p-4 text-sm text-red-950 shadow-[5px_5px_0_#d62b20]"><p className="font-mono text-[10px] font-black tracking-[.2em] text-red-700">SYSTEM ALERT</p><p className="mt-1 font-black">{error instanceof Error ? error.message : "โหลดข้อมูลไม่สำเร็จ"}{code ? ` (${code})` : ""}</p>{retry && <button className="mt-2 min-h-11 font-black underline decoration-2 underline-offset-4 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-600" onClick={retry}>ลองใหม่อีกครั้ง</button>}</div>; }
-export function Empty({ text }: { text: string }) { return <div className="border-2 border-dashed border-black bg-[#fffdf4] p-8 text-center shadow-[4px_4px_0_#18130f]"><span className="mx-auto mb-3 grid h-11 w-11 place-items-center border-2 border-black bg-amber-100 font-mono text-lg font-black" aria-hidden="true">?</span><p className="text-sm font-black text-stone-600">{text}</p></div>; }
-export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "success" | "warning" | "danger" }) { const style = { neutral: "bg-white", success: "bg-black text-white", warning: "bg-amber-200 text-black", danger: "bg-red-600 text-white" }[tone]; return <span className={`inline-flex min-h-7 items-center border-2 border-black px-2 py-1 font-mono text-[10px] font-black tracking-wider shadow-[2px_2px_0_#18130f] ${style}`}>{children}</span>; }
+
+import type {
+  ButtonHTMLAttributes,
+  ComponentProps,
+  HTMLAttributes,
+  LabelHTMLAttributes,
+  ReactNode,
+} from "react";
+import Link from "next/link";
+
+type Tone = "neutral" | "success" | "warning" | "danger" | "info";
+type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
+type ButtonSize = "sm" | "md" | "lg";
+
+function classes(...values: Array<string | false | null | undefined>) {
+  return values.filter(Boolean).join(" ");
+}
+
+export function GamePanel({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div className={classes("game-panel", className)} {...props} />;
+}
+
+export function GameCard({ className, interactive = false, ...props }: HTMLAttributes<HTMLElement> & { interactive?: boolean }) {
+  return <article className={classes("game-card", interactive && "game-card--interactive", className)} {...props} />;
+}
+
+export function GameButton({ className, variant = "primary", size = "md", type = "button", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize }) {
+  return <button type={type} className={classes("game-button", `game-button--${variant}`, `game-button--${size}`, className)} {...props} />;
+}
+
+export function GameButtonLink({ className, variant = "primary", size = "md", ...props }: ComponentProps<typeof Link> & { variant?: ButtonVariant; size?: ButtonSize }) {
+  return <Link className={classes("game-button", `game-button--${variant}`, `game-button--${size}`, className)} {...props} />;
+}
+
+export function StatusBadge({ className, tone = "neutral", ...props }: HTMLAttributes<HTMLSpanElement> & { tone?: Tone }) {
+  return <span className={classes("game-status-badge", `game-status-badge--${tone}`, className)} {...props} />;
+}
+
+export function FilterBar({ className, children, label = "ตัวกรอง", ...props }: HTMLAttributes<HTMLDivElement> & { label?: string }) {
+  return <div className={classes("game-filter-bar", className)} role="group" aria-label={label} {...props}>{children}</div>;
+}
+
+export function FormField({ className, label, hint, error, required, children, ...props }: LabelHTMLAttributes<HTMLLabelElement> & { label: ReactNode; hint?: ReactNode; error?: ReactNode; required?: boolean }) {
+  return <label className={classes("game-form-field", className)} {...props}>
+    <span className="game-form-field__label">{label}{required && <span className="game-form-field__required" aria-hidden="true"> *</span>}</span>
+    {children}
+    {(error || hint) && <span className={classes("game-form-field__message", Boolean(error) && "game-form-field__message--error")}>{error || hint}</span>}
+  </label>;
+}
+
+export function SelectableTile({ className, selected = false, type = "button", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { selected?: boolean }) {
+  return <button type={type} aria-pressed={selected} className={classes("game-selectable-tile", selected && "game-selectable-tile--selected", className)} {...props} />;
+}
+
+export function DataTableShell({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div className={classes("game-table-shell", className)} {...props}><div className="game-table-shell__viewport">{children}</div></div>;
+}
+
+export function EmptyState({ className, title, description, icon = "?", action, ...props }: HTMLAttributes<HTMLDivElement> & { title: ReactNode; description?: ReactNode; icon?: ReactNode; action?: ReactNode }) {
+  return <div className={classes("game-empty-state", className)} {...props}>
+    <span className="game-empty-state__icon" aria-hidden="true">{icon}</span>
+    <p className="game-empty-state__title">{title}</p>
+    {description && <p className="game-empty-state__description">{description}</p>}
+    {action && <div className="game-empty-state__action">{action}</div>}
+  </div>;
+}
+
+export function ActionBar({ className, sticky = false, ...props }: HTMLAttributes<HTMLDivElement> & { sticky?: boolean }) {
+  return <div className={classes("game-action-bar", sticky && "game-action-bar--sticky", className)} {...props} />;
+}
+
+export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?: string; title: string; description?: string; actions?: ReactNode }) {
+  return <header className="page-market-header">
+    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <div>{eyebrow && <p className="page-market-header__eyebrow">{eyebrow}</p>}<h1 className="page-market-header__title">{title}</h1>{description && <p className="page-market-header__description">{description}</p>}</div>
+      {actions && <div className="shrink-0">{actions}</div>}
+    </div>
+  </header>;
+}
+
+export function ErrorBox({ error, retry }: { error: unknown; retry?: () => void }) {
+  const code = process.env.NODE_ENV === "development" && error instanceof Error && "code" in error && typeof error.code === "string" ? error.code : "";
+  return <div role="alert" className="game-error-box"><p className="game-error-box__eyebrow">SYSTEM ALERT</p><p className="game-error-box__message">{error instanceof Error ? error.message : "โหลดข้อมูลไม่สำเร็จ"}{code ? ` (${code})` : ""}</p>{retry && <GameButton variant="danger" size="sm" className="mt-3" onClick={retry}>ลองใหม่อีกครั้ง</GameButton>}</div>;
+}
+
+// Compatibility exports for existing pages. New code should use EmptyState and StatusBadge.
+export function Empty({ text }: { text: string }) {
+  return <EmptyState title={text} />;
+}
+
+export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: Exclude<Tone, "info"> }) {
+  return <StatusBadge tone={tone}>{children}</StatusBadge>;
+}

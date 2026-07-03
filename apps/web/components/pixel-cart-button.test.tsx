@@ -10,7 +10,7 @@ describe("PixelCartButton", () => {
     expect(markup).toContain("right-4");
     expect(markup).toContain("bottom-[calc(4.75rem+env(safe-area-inset-bottom))]");
     expect(markup).toContain("lg:bottom-7");
-    expect(markup).toContain("lg:right-7");
+    expect(markup).toContain("market-cart-button");
     expect(markup).toContain("z-[45]");
     expect(markup).toContain("min-w-7");
     expect(markup).toContain(">3<");

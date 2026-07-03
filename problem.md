@@ -299,6 +299,52 @@
   resource; เมื่อรันซ้ำเดี่ยว ๆ ผ่านทั้ง API และ Web จึงไม่ใช่ lint error
 - สถานะ: แก้แล้วและรวมไว้ใน version control ของงานชุดนี้
 
+## 17. UI แต่ละหน้าใช้ style คนละระบบและถูก global selector ครอบ
+
+- อาการ:
+  - หน้า `/inventory/request` มี visual style แบบ warm pixel-art แต่หน้าอื่นยังใช้
+    border/shadow สีดำและ accent สีแดงแบบ legacy
+  - `page-kit.tsx` เดิมมี shared component น้อย ทำให้แต่ละหน้าต้องเขียน `className`
+    ยาวและกำหนดสี ขอบ เงา form และ card ซ้ำ
+  - selector เช่น `.market-workspace article:not(.market-card)` และ selector ที่จับ
+    `.overflow-x-auto`, table, `.border-dashed` และ fixed form ส่ง style ไปยัง element
+    ที่ไม่เกี่ยวข้อง
+- สาเหตุ:
+  - presentation ถูกผูกกับ HTML element และ utility class ทั่วไป แทน component class
+    ที่มี scope ชัดเจน
+  - style ที่ reuse ได้อยู่ใน `inventory-market.tsx` ซึ่งเป็น component เฉพาะหน้า
+  - ไม่มี semantic tokens กลางสำหรับ cream, brown, caramel, border และ pixel shadow
+- การแก้ไข design system:
+  - เพิ่ม semantic tokens และ scoped `game-*` classes ใน `globals.css`
+  - เพิ่ม `GamePanel`, `GameCard`, `GameButton`, `GameButtonLink`, `StatusBadge`,
+    `FilterBar`, `FormField`, `SelectableTile`, `DataTableShell`, `EmptyState` และ
+    `ActionBar` ใน `page-kit.tsx`
+  - ให้ shared style ใน `inventory-market.tsx` reuse primitives จาก `page-kit.tsx`
+  - ลบ generic workspace selectors ที่ครอบ article, overflow container, tables,
+    dashed border และ fixed form; table style ถูกจำกัดไว้ใต้ `.game-table-shell`
+- หน้าที่ migrate แล้ว:
+  - `/dashboard`
+  - `/inventory/request`, `/inventory/requests`, `/inventory/stockroom`
+  - `/inventory/movements`, `/inventory/count`, `/inventory/balances`
+  - `/settings/items`, `/settings/items/new`, `/settings/items/[itemId]/edit`
+  - `/settings/store-items`, `/settings/locations`
+  - component ลูก `stock-movement-ui.tsx`, `stock-count-card.tsx` และ
+    `item-config-form.tsx`
+- สิ่งที่ไม่เปลี่ยน:
+  - business logic, API routes, payload, schema, query keys, mutation behavior,
+    state management, validation และ role permissions
+  - Sidebar และ AppShell structure
+- Guardrails:
+  - ห้ามเพิ่ม selector กลางที่จับ `article`, `table` หรือ `.overflow-x-auto` ใต้
+    `.market-workspace`
+  - ต้อง reuse component ใน `page-kit.tsx` ก่อนสร้าง style หรือ component ใหม่
+  - page-specific class ใช้ได้เฉพาะ layout/spacing; สี ขอบ เงา form และ interaction
+    state ต้องอ้าง shared component หรือ semantic token
+  - migration แต่ละชุดต้องผ่าน typecheck, tests และ production build
+- ผลตรวจล่าสุด: Web typecheck ผ่าน, Web tests 23 tests ผ่าน และ Next.js production
+  build ผ่าน
+- สถานะ: design system foundation และหน้าหลักทั้งหมดถูก migrate แล้ว
+
 ## สถานะการตรวจสอบล่าสุด
 
 - Service Account อ่าน Spreadsheet ได้

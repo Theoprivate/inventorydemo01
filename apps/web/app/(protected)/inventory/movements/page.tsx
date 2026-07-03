@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ErrorBox, PageHeader } from "@/components/page-kit";
+import { ActionBar, EmptyState, ErrorBox, FilterBar, FormField, GameButton, GamePanel, PageHeader, SelectableTile, StatusBadge } from "@/components/page-kit";
 import { CartViewportPortal as ViewportPortal } from "@/components/pixel-cart-drawer";
 import { MovementProductCard, MovementTypePicker, QuantityStepper } from "@/components/stock-movement-ui";
 import { get, post } from "@/lib/api";
@@ -96,58 +96,58 @@ export default function MovementsPage() {
     setSelectedItemId("");
   };
 
-  return <div className="movement-game -m-4 min-h-[calc(100vh-4rem)] overflow-x-clip bg-[#fff2bd] p-4 text-[#18130f] sm:-m-6 sm:p-6 lg:-m-8 lg:p-8">
+  return <div className="movement-game min-w-0 overflow-x-clip">
     <PageHeader eyebrow="Stock Movement · Game Mode" title="รับเข้าและเคลื่อนไหว" description="เลือกงาน เลือกสินค้า แล้วตรวจรายละเอียดก่อนยืนยัน" />
 
-    <section aria-labelledby="movement-step-1" className="border-b-2 border-black pb-7">
-      <p className="font-mono text-[10px] font-black tracking-[.2em] text-red-700">STEP 01</p>
-      <h2 id="movement-step-1" className="mb-4 mt-1 text-2xl font-black">เลือกประเภทงาน</h2>
+    <section aria-labelledby="movement-step-1" className="border-b-2 border-[var(--color-game-border-strong)] pb-7">
+      <p className="page-market-header__eyebrow">STEP 01</p>
+      <h2 id="movement-step-1" className="mb-4 mt-1 text-2xl font-black text-[var(--color-game-brown)]">เลือกประเภทงาน</h2>
       <MovementTypePicker value={type} onChange={chooseType} onCount={() => router.push("/inventory/count")} />
     </section>
 
     <section aria-labelledby="movement-step-2" className="py-7">
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div><p className="font-mono text-[10px] font-black tracking-[.2em] text-red-700">STEP 02 · {MOVEMENT_ACTIONS.find((action) => action.value === type)?.label}</p><h2 id="movement-step-2" className="mt-1 text-2xl font-black">เลือกสินค้า</h2></div>
+        <div><p className="page-market-header__eyebrow">STEP 02 · {MOVEMENT_ACTIONS.find((action) => action.value === type)?.label}</p><h2 id="movement-step-2" className="mt-1 text-2xl font-black text-[var(--color-game-brown)]">เลือกสินค้า</h2></div>
         <span className="text-sm font-black">{filteredItems.length} รายการ</span>
       </div>
-      <label className="mb-4 block max-w-3xl"><span className="sr-only">ค้นหาสินค้า</span><input className="min-h-12 w-full border-2 border-black bg-white px-4 font-bold shadow-[4px_4px_0_#18130f] outline-none placeholder:text-stone-400 focus:shadow-[4px_4px_0_#d62b20]" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ค้นหาชื่อสินค้า" /></label>
-      <div className="mb-5 flex snap-x gap-3 overflow-x-auto px-1 pb-2" aria-label="กรองหมวดหมู่">
+      <FormField className="mb-4 max-w-3xl" label="ค้นหาสินค้า"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ค้นหาชื่อสินค้า" /></FormField>
+      <FilterBar className="mb-5 snap-x" label="กรองหมวดหมู่">
         <FilterButton label="ทั้งหมด" active={!category} onClick={() => setCategory("")} />
         {(categories.data ?? []).filter((value) => value.categoryId && value.categoryName).map((value) => <FilterButton key={value.categoryId} label={value.categoryName} active={category === value.categoryId} onClick={() => setCategory(value.categoryId)} />)}
-      </div>
-      {items.isError ? <ErrorBox error={items.error} /> : !filteredItems.length ? <div className="border-2 border-dashed border-black bg-white p-10 text-center font-black">ไม่พบสินค้าที่เลือกได้</div> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(180px,1fr))] sm:gap-5">
+      </FilterBar>
+      {items.isError ? <ErrorBox error={items.error} /> : !filteredItems.length ? <EmptyState title="ไม่พบสินค้าที่เลือกได้" description="ลองเปลี่ยนหมวดหมู่หรือคำค้นหา" /> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(180px,1fr))] sm:gap-5">
         {filteredItems.map((item) => <MovementProductCard key={item.itemId} item={item} balance={balanceByItem[item.itemId] ?? 0} onSelect={chooseItem} />)}
       </div>}
     </section>
 
-    <section aria-labelledby="movement-history" className="border-t-2 border-black pt-7">
-      <div className="mb-4"><p className="font-mono text-[10px] font-black tracking-[.2em] text-red-700">MOVEMENT LOG</p><h2 id="movement-history" className="mt-1 text-2xl font-black">ประวัติล่าสุด</h2></div>
-      <div className="mb-4 flex gap-2 overflow-x-auto pb-2"><FilterButton label="ทั้งหมด" active={!historyFilter} onClick={() => setHistoryFilter("")} />{MOVEMENT_ACTIONS.map((action) => <FilterButton key={action.value} label={action.label} active={historyFilter === action.value} onClick={() => setHistoryFilter(action.value)} />)}</div>
-      {history.isError ? <ErrorBox error={history.error} /> : <div className="divide-y-2 divide-black border-2 border-black bg-white shadow-[5px_5px_0_#18130f]">{visibleHistory.slice(0, 30).map((movement) => <article className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3 p-4" key={movement.movementId}><div className="min-w-0"><p className="truncate font-black">{validItems.find((item) => item.itemId === movement.itemId)?.itemName || movement.itemId}</p><p className="mt-1 text-xs font-bold text-stone-500">{movement.movementType} · {movement.movementDate}{movement.note ? ` · ${movement.note}` : ""}</p></div><p className="font-black">{movement.qty} {movement.unit}</p></article>)}</div>}
+    <section aria-labelledby="movement-history" className="border-t-2 border-[var(--color-game-border-strong)] pt-7">
+      <div className="mb-4"><p className="page-market-header__eyebrow">MOVEMENT LOG</p><h2 id="movement-history" className="mt-1 text-2xl font-black text-[var(--color-game-brown)]">ประวัติล่าสุด</h2></div>
+      <FilterBar className="mb-4" label="กรองประวัติ Movement"><FilterButton label="ทั้งหมด" active={!historyFilter} onClick={() => setHistoryFilter("")} />{MOVEMENT_ACTIONS.map((action) => <FilterButton key={action.value} label={action.label} active={historyFilter === action.value} onClick={() => setHistoryFilter(action.value)} />)}</FilterBar>
+      {history.isError ? <ErrorBox error={history.error} /> : !visibleHistory.length ? <EmptyState title="ไม่มีประวัติ Movement" /> : <GamePanel className="divide-y divide-[var(--color-game-border)]">{visibleHistory.slice(0, 30).map((movement) => <article className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3 p-4" key={movement.movementId}><div className="min-w-0"><p className="truncate font-black text-[var(--color-game-brown)]">{validItems.find((item) => item.itemId === movement.itemId)?.itemName || movement.itemId}</p><p className="mt-1 text-xs font-bold text-[var(--color-game-muted)]">{movement.movementType} · {movement.movementDate}{movement.note ? ` · ${movement.note}` : ""}</p></div><StatusBadge>{movement.qty} {movement.unit}</StatusBadge></article>)}</GamePanel>}
     </section>
 
-    <ViewportPortal>{selectedItem && <div className="fixed inset-0 z-[60] overflow-hidden">
-      <button type="button" aria-label="ยกเลิก Movement" onClick={closePanel} className="absolute inset-0 bg-black/60" />
-      <form onSubmit={form.handleSubmit((value) => { if (!save.isPending) save.mutate(value); })} className="absolute inset-y-0 right-0 flex h-[100dvh] w-full min-w-0 max-w-[460px] flex-col border-l-2 border-black bg-[#fff9e5] shadow-[-7px_0_0_#d62b20]">
-        <header className="shrink-0 border-b-2 border-black p-4 sm:p-6"><p className="font-mono text-[10px] font-black tracking-[.2em] text-red-700">STEP 03 · CONFIRM ACTION</p><div className="mt-2 flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="truncate text-2xl font-black">{selectedItem.itemName}</h2><p className="mt-1 text-sm font-bold text-stone-500">{MOVEMENT_ACTIONS.find((action) => action.value === type)?.label} · คงเหลือ {balanceByItem[selectedItem.itemId] ?? 0} {selectedItem.unit}</p></div><button type="button" onClick={closePanel} className="min-h-12 min-w-12 border-2 border-black bg-white text-xl font-black shadow-[3px_3px_0_#18130f]">×</button></div></header>
+    <ViewportPortal>{selectedItem && <div className="market-backdrop fixed inset-0 z-[60] overflow-hidden">
+      <button type="button" aria-label="ยกเลิก Movement" onClick={closePanel} className="absolute inset-0 bg-[#2f2118]/55 backdrop-blur-[2px]" />
+      <form onSubmit={form.handleSubmit((value) => { if (!save.isPending) save.mutate(value); })} className="market-drawer absolute inset-y-0 right-0 flex h-[100dvh] w-full min-w-0 max-w-[460px] flex-col border-l border-[var(--color-game-border)] bg-[var(--color-game-cream)] shadow-[-7px_0_0_#9d6a3b]">
+        <header className="shrink-0 border-b border-[var(--color-game-border)] p-4 sm:p-6"><p className="page-market-header__eyebrow">STEP 03 · CONFIRM ACTION</p><div className="mt-2 flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="truncate text-2xl font-black text-[var(--color-game-brown)]">{selectedItem.itemName}</h2><p className="mt-1 text-sm font-bold text-[var(--color-game-muted)]">{MOVEMENT_ACTIONS.find((action) => action.value === type)?.label} · คงเหลือ {balanceByItem[selectedItem.itemId] ?? 0} {selectedItem.unit}</p></div><GameButton type="button" variant="secondary" size="lg" onClick={closePanel} aria-label="ปิด">×</GameButton></div></header>
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
           {type === "ADJUSTMENT" && <fieldset><legend className="mb-2 font-black">ทิศทางการปรับ</legend><div className="grid grid-cols-2 gap-3"><ChoiceButton label="เพิ่มยอด" active={adjustmentDirection === "increase"} onClick={() => form.setValue("adjustmentDirection", "increase")} /><ChoiceButton label="ลดยอด" active={adjustmentDirection === "decrease"} onClick={() => form.setValue("adjustmentDirection", "decrease")} /></div></fieldset>}
-          {needsFrom && <label className="block font-black">ตำแหน่งต้นทาง<select className="field mt-2" {...form.register("fromLocationId")}><option value="">เลือกต้นทาง</option>{locations.data?.filter((location) => location.isActive).map((location) => <option key={location.locationId} value={location.locationId}>{location.locationName}</option>)}</select></label>}
-          {needsTo && <label className="block font-black">ตำแหน่งปลายทาง<select className="field mt-2" {...form.register("toLocationId")}><option value="">เลือกปลายทาง</option>{locations.data?.filter((location) => location.isActive).map((location) => <option key={location.locationId} value={location.locationId}>{location.locationName}</option>)}</select></label>}
+          {needsFrom && <FormField label="ตำแหน่งต้นทาง"><select {...form.register("fromLocationId")}><option value="">เลือกต้นทาง</option>{locations.data?.filter((location) => location.isActive).map((location) => <option key={location.locationId} value={location.locationId}>{location.locationName}</option>)}</select></FormField>}
+          {needsTo && <FormField label="ตำแหน่งปลายทาง"><select {...form.register("toLocationId")}><option value="">เลือกปลายทาง</option>{locations.data?.filter((location) => location.isActive).map((location) => <option key={location.locationId} value={location.locationId}>{location.locationName}</option>)}</select></FormField>}
           <QuantityStepper value={Number.isFinite(qty) ? qty : 0.01} unit={selectedItem.unit} onChange={(value) => form.setValue("qty", value, { shouldValidate: true })} />
-          <label className="block font-black">หมายเหตุ<textarea className="field mt-2 min-h-24 resize-y" placeholder="ระบุเหตุผลหรือรายละเอียด (ถ้ามี)" {...form.register("note")} /></label>
+          <FormField label="หมายเหตุ"><textarea className="min-h-24 resize-y" placeholder="ระบุเหตุผลหรือรายละเอียด (ถ้ามี)" {...form.register("note")} /></FormField>
           {save.error && <ErrorBox error={save.error} />}
         </div>
-        <footer className="grid shrink-0 grid-cols-2 gap-3 border-t-2 border-black bg-[#fff9e5] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6"><button type="button" onClick={closePanel} disabled={save.isPending} className="btn-secondary min-h-12">ยกเลิก</button><button type="submit" disabled={save.isPending} className="btn-primary min-h-12">{save.isPending ? "กำลังบันทึก..." : "ยืนยันรายการ"}</button></footer>
+        <footer className="shrink-0 border-t border-[var(--color-game-border)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6"><ActionBar><GameButton type="button" variant="secondary" size="lg" className="flex-1" onClick={closePanel} disabled={save.isPending}>ยกเลิก</GameButton><GameButton type="submit" size="lg" className="flex-1" disabled={save.isPending}>{save.isPending ? "กำลังบันทึก..." : "ยืนยันรายการ"}</GameButton></ActionBar></footer>
       </form>
     </div>}</ViewportPortal>
   </div>;
 }
 
 function FilterButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return <button type="button" onClick={onClick} aria-pressed={active} className={`min-h-12 shrink-0 snap-start border-2 border-black px-4 font-black shadow-[3px_3px_0_#18130f] ${active ? "bg-red-600 text-white" : "bg-white hover:bg-amber-100"}`}>{label}</button>;
+  return <SelectableTile selected={active} onClick={onClick} className="min-h-12 shrink-0 snap-start px-4">{label}</SelectableTile>;
 }
 
 function ChoiceButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return <button type="button" aria-pressed={active} onClick={onClick} className={`min-h-12 border-2 border-black px-3 font-black shadow-[3px_3px_0_#18130f] ${active ? "bg-red-600 text-white" : "bg-white"}`}>{label}</button>;
+  return <SelectableTile selected={active} onClick={onClick} className="min-h-12 px-3 text-center">{label}</SelectableTile>;
 }
