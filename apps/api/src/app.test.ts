@@ -25,8 +25,9 @@ describe("inventory API", () => {
       { User_ID: "U2", Username: "owner", Password: "pass", Display_Name: "Owner", Role: "owner", Branch_ID: "B1", Is_Active: "TRUE", Created_At: "" },
       { User_ID: "U3", Username: "manager", Password: "pass", Display_Name: "Manager", Role: "manager", Branch_ID: "B1", Is_Active: "TRUE", Created_At: "" },
       { User_ID: "U4", Username: "stock", Password: "pass", Display_Name: "Stock", Role: "stock", Branch_ID: "B1", Is_Active: "TRUE", Created_At: "" },
+      { User_ID: "U5", Username: "other-staff", Password: "pass", Display_Name: "Other Staff", Role: "staff", Branch_ID: "B2", Is_Active: "TRUE", Created_At: "" },
     ];
-    repository.data.Branches = [{ Branch_ID: "B1", Branch_Name: "Demo", Is_Active: "TRUE", Created_At: "" }];
+    repository.data.Branches = [{ Branch_ID: "B1", Branch_Name: "Demo", Is_Active: "TRUE", Created_At: "" }, { Branch_ID: "B2", Branch_Name: "Other", Is_Active: "TRUE", Created_At: "" }];
     repository.data.Categories = [{ Category_ID: "C1", Category_Name: "วัตถุดิบ", Sort_Order: 1, Is_Active: "TRUE" }];
     repository.data.Items = [
       { Item_ID: "I1", Item_Name: "ข้าว", Category_ID: "C1", Unit: "kg", Image_URL: "", Description: "", Is_Active: "TRUE", Created_At: "created-at" },
@@ -85,4 +86,24 @@ describe("inventory API", () => {
   it("rejects zero and negative quantities", async () => { for (const requestedQty of [0, -1]) { const response = await app.inject({ method: "POST", url: "/api/v1/stock-requests", headers: { cookie }, payload: { items: [{ itemId: "I1", requestedQty, unit: "kg" }] } }); expect(response.statusCode).toBe(400); } });
   it("merges duplicate items before writing", async () => { const before = repository.data.Stock_Request_Items.length; const response = await app.inject({ method: "POST", url: "/api/v1/stock-requests", headers: { cookie }, payload: { items: [{ itemId: "I1", requestedQty: 2, unit: "kg" }, { itemId: "I1", requestedQty: 3, unit: "kg" }] } }); expect(response.json().data.itemCount).toBe(1); expect(repository.data.Stock_Request_Items[before]?.Requested_Qty).toBe(5); });
   it("does not duplicate a retried request with the same idempotency key", async () => { const key = "123e4567-e89b-42d3-a456-426614174000"; const payload = { items: [{ itemId: "I1", requestedQty: 1, unit: "kg" }] }; const before = repository.data.Stock_Requests.length; const first = await app.inject({ method: "POST", url: "/api/v1/stock-requests", headers: { cookie, "idempotency-key": key }, payload }); const second = await app.inject({ method: "POST", url: "/api/v1/stock-requests", headers: { cookie, "idempotency-key": key }, payload }); expect(second.json().data.requestId).toBe(first.json().data.requestId); expect(repository.data.Stock_Requests).toHaveLength(before + 1); });
+  it("forbids staff from team stats", async () => { const response = await app.inject({ method: "GET", url: "/api/team/stats", headers: { cookie } }); expect(response.statusCode).toBe(403); });
+  it("limits manager team stats to the authenticated branch", async () => { const response = await app.inject({ method: "GET", url: "/api/team/stats", headers: { cookie: roleCookies.manager } }); expect(response.statusCode).toBe(200); expect(response.json().data.length).toBeGreaterThan(0); expect(response.json().data.every((value: { branchId: string }) => value.branchId === "B1")).toBe(true); expect(response.json().data.some((value: { userId: string }) => value.userId === "U5")).toBe(false); });
+  it("returns only the authenticated user's activities and stats", async () => {
+    const [activities, stats] = await Promise.all([
+      app.inject({ method: "GET", url: "/api/me/activities?limit=100", headers: { cookie } }),
+      app.inject({ method: "GET", url: "/api/me/stats", headers: { cookie } }),
+    ]);
+    expect(activities.statusCode).toBe(200);
+    expect(activities.json().data.length).toBeGreaterThan(0);
+    expect(activities.json().data.every((value: { userId: string }) => value.userId === "U1")).toBe(true);
+    expect(stats.json().data).toMatchObject({ userId: "U1", role: "staff", branchId: "B1", level: 1 });
+  });
+  it("forces manager activity-log queries to the authenticated branch", async () => { const response = await app.inject({ method: "GET", url: "/api/activity-log?branchId=B2&limit=100", headers: { cookie: roleCookies.manager } }); expect(response.statusCode).toBe(200); expect(response.json().data.length).toBeGreaterThan(0); expect(response.json().data.every((value: { branchId: string }) => value.branchId === "B1")).toBe(true); });
+  it("does not reward a draft stock count", async () => {
+    const before = repository.data.XP_Transactions.length;
+    const response = await app.inject({ method: "POST", url: "/api/v1/stock-counts", headers: { cookie: roleCookies.stock }, payload: { locationId: "L1", countRound: "ADHOC", status: "DRAFT", items: [{ itemId: "I1", countedQty: 0, unit: "kg" }] } });
+    expect(response.statusCode).toBe(200);
+    expect(repository.data.User_Activities.at(-1)).toMatchObject({ Action: "STOCK_COUNT_STARTED", Entity_ID: response.json().data.countId });
+    expect(repository.data.XP_Transactions).toHaveLength(before);
+  });
 });

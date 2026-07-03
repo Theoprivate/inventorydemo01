@@ -33,6 +33,9 @@ export const SHEET_HEADERS = {
   Stock_Request_Items: ["Request_Item_ID", "Request_ID", "Item_ID", "Requested_Qty", "Approved_Qty", "Issued_Qty", "Unit", "Item_Status", "Note"],
   Stock_Counts: ["Count_ID", "Count_Date", "Branch_ID", "Location_ID", "Count_Round", "Counted_By", "Count_Status", "Note", "Created_At"],
   Stock_Count_Items: ["Count_Item_ID", "Count_ID", "Item_ID", "System_Qty", "Counted_Qty", "Variance_Qty", "Unit", "Note"],
+  User_Activities: ["Activity_ID", "Activity_Date", "User_ID", "Branch_ID", "Action", "Entity_Type", "Entity_ID", "Result", "Detail", "Metadata_JSON", "Created_At"],
+  User_Stats: ["User_ID", "Total_XP", "Current_Level", "Current_Level_XP", "Next_Level_XP", "Current_Streak", "Longest_Streak", "Last_Active_Date", "Last_XP_At", "Updated_At"],
+  XP_Transactions: ["XP_Transaction_ID", "User_ID", "Activity_ID", "XP_Amount", "Reason", "Entity_Type", "Entity_ID", "Created_At"],
 } as const;
 
 export type SheetName = keyof typeof SHEET_HEADERS;

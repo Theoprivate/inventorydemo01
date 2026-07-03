@@ -6,6 +6,9 @@ import type { Role } from "./models.js";
 import { clearSessionCookie, registerAuth, setSessionCookie } from "./plugins/auth.js";
 import type { InventoryRepository } from "./repositories/inventory-repository.js";
 import { InventoryService } from "./services/inventory-service.js";
+import { ActivityService } from "./modules/user-activity/activity.service.js";
+import { GoogleSheetsActivityRepository } from "./modules/user-activity/google-sheets-activity.repository.js";
+import { registerActivityRoutes } from "./modules/user-activity/activity.routes.js";
 
 const roles = ["owner", "manager", "stock", "staff"] as const;
 const masterRoles: Role[] = ["owner", "manager"];
@@ -16,7 +19,8 @@ const boolean = z.boolean();
 
 export async function buildApp(repository: InventoryRepository): Promise<FastifyInstance> {
   const app = Fastify({ logger: true });
-  const service = new InventoryService(repository);
+  const activityService = new ActivityService(new GoogleSheetsActivityRepository(repository), { logger: app.log });
+  const service = new InventoryService(repository, activityService);
   const origins = (process.env.FRONTEND_ORIGIN ?? "http://localhost:3000").split(",").map((v) => v.trim()).filter(Boolean);
   await app.register(cors, { credentials: true, origin: (origin, callback) => callback(null, isAllowedOrigin(origin, origins)) });
   await registerAuth(app);
@@ -35,7 +39,19 @@ export async function buildApp(repository: InventoryRepository): Promise<Fastify
   });
 
   const loginSchema = z.object({ username: z.string().trim().min(1), password: z.string().min(1) });
-  const login = async (request: FastifyRequest, reply: FastifyReply) => { const body = loginSchema.parse(request.body); const user = await service.login(body.username, body.password); if (!user) throw new AppError(401, "INVALID_CREDENTIALS", "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"); const token = await reply.jwtSign(user); setSessionCookie(reply, token); return ok(user); };
+  const login = async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = loginSchema.parse(request.body);
+    const user = await service.login(body.username, body.password);
+    if (!user) {
+      const identified = await service.findUserByUsername(body.username);
+      if (identified) await activityService.recordActivitySafely({ userId: identified.userId, branchId: identified.branchId, action: "LOGIN_FAILED", entityType: "USER", entityId: identified.userId, result: "FAILED" });
+      throw new AppError(401, "INVALID_CREDENTIALS", "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
+    }
+    await activityService.recordActivitySafely({ userId: user.userId, branchId: user.branchId, action: "LOGIN_SUCCESS", entityType: "USER", entityId: user.userId, result: "SUCCESS" });
+    const token = await reply.jwtSign(user);
+    setSessionCookie(reply, token);
+    return ok(user);
+  };
   const logout = async (_request: FastifyRequest, reply: FastifyReply) => { clearSessionCookie(reply); return ok({ loggedOut: true }); };
   const me = async (request: FastifyRequest) => ok(request.user);
 
@@ -44,6 +60,7 @@ export async function buildApp(repository: InventoryRepository): Promise<Fastify
     app.post(`${prefix}/auth/logout`, { preHandler: app.authenticate }, logout);
     app.get(`${prefix}/auth/me`, { preHandler: app.authenticate }, me);
   }
+  registerActivityRoutes(app, activityService);
 
   const auth = { preHandler: app.authenticate };
   const master = { preHandler: app.requireRoles(masterRoles) };
@@ -56,11 +73,11 @@ export async function buildApp(repository: InventoryRepository): Promise<Fastify
   app.get(`${prefix}/branches`, auth, async () => ok(await service.branches()));
   app.get(`${prefix}/categories`, auth, async () => ok(await service.categories()));
   app.get(`${prefix}/items`, auth, async () => ok(await service.items()));
-  app.post(`${prefix}/items`, master, async (request) => ok(await service.saveItem(itemSchema.parse(request.body))));
-  app.patch(`${prefix}/items/:itemId`, master, async (request) => { const { itemId } = paramsWith("itemId").parse(request.params) as { itemId: string }; return ok(await service.saveItem({ ...itemPatchSchema.parse(request.body), itemId })); });
+  app.post(`${prefix}/items`, master, async (request) => ok(await service.saveItem(request.user, itemSchema.parse(request.body))));
+  app.patch(`${prefix}/items/:itemId`, master, async (request) => { const { itemId } = paramsWith("itemId").parse(request.params) as { itemId: string }; return ok(await service.saveItem(request.user, { ...itemPatchSchema.parse(request.body), itemId })); });
   app.get(`${prefix}/locations`, auth, async (request) => { const branchId = z.object({ branchId: z.string().optional() }).parse(request.query).branchId; if (branchId && request.user.role !== "owner" && branchId !== request.user.branchId) throw new AppError(403, "BRANCH_FORBIDDEN", "ไม่สามารถดูข้อมูลต่างสาขาได้"); return ok(await service.locations(branchId ?? request.user.branchId)); });
   app.post(`${prefix}/locations`, master, async (request) => ok(await service.saveLocation(request.user, locationSchema.parse(request.body))));
-  app.patch(`${prefix}/locations/:locationId`, master, async (request) => { const { locationId } = paramsWith("locationId").parse(request.params) as { locationId: string }; return ok(await service.saveLocation(request.user, { ...locationSchema.partial().parse(request.body), locationId } as z.infer<typeof locationSchema> & { locationId: string })); });
+  app.patch(`${prefix}/locations/:locationId`, master, async (request) => { const { locationId } = paramsWith("locationId").parse(request.params) as { locationId: string }; return ok(await service.saveLocation(request.user, { ...locationSchema.partial().parse(request.body), locationId })); });
   app.get(`${prefix}/store-items`, auth, async (request) => { const branchId = z.object({ branchId: z.string().optional() }).parse(request.query).branchId ?? request.user.branchId; if (request.user.role !== "owner" && branchId !== request.user.branchId) throw new AppError(403, "BRANCH_FORBIDDEN", "ไม่สามารถดูข้อมูลต่างสาขาได้"); return ok(await service.storeItems(branchId)); });
   app.put(`${prefix}/store-items/batch`, master, async (request) => { const body = storeItemsSchema.parse(request.body); return ok(await service.saveStoreItems(request.user, body.branchId, body.items)); });
   app.get(`${prefix}/requestable-items`, auth, async (request) => ok(await service.requestableItems(request.user)));
@@ -82,6 +99,7 @@ export async function buildApp(repository: InventoryRepository): Promise<Fastify
   app.post(`${prefix}/stock-counts`, stock, async (request) => ok(await service.createCount(request.user, countSchema.parse(request.body))));
   app.get(`${prefix}/stock-counts`, stock, async (request) => ok(await service.counts(request.user)));
   app.get(`${prefix}/stock-counts/:countId`, stock, async (request) => { const { countId } = paramsWith("countId").parse(request.params) as { countId: string }; const value = (await service.counts(request.user)).find((v) => v.countId === countId); if (!value) throw new AppError(404, "COUNT_NOT_FOUND", "ไม่พบการนับสต๊อก"); return ok(value); });
+  app.post(`${prefix}/stock-counts/:countId/review`, master, async (request) => { const { countId } = paramsWith("countId").parse(request.params) as { countId: string }; return ok(await service.reviewCount(request.user, countId)); });
   app.post(`${prefix}/admin/rebuild-stock-balances`, owner, async (request) => ok(await service.rebuildBalances(request.user)));
   return app;
 }

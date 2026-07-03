@@ -10,11 +10,9 @@ type LoginSceneProps = {
 export function LoginScene({ art, card }: LoginSceneProps) {
   return (
     <main className="login-scene">
-      <div className="login-scene__shell">
-        <section className="login-scene__art" aria-hidden="true">
-          <div className="login-scene__artFrame">{art}</div>
-        </section>
-        <section className="login-scene__cardColumn">{card}</section>
+      <div className="login-layout">
+        <section className="storefront-panel" aria-hidden="true">{art}</section>
+        <section className="login-panel">{card}</section>
       </div>
     </main>
   );
