@@ -377,3 +377,4 @@
 - Next.js production build ผ่าน
 - `key.json` และ `apps/api/.env` ไม่ถูก track ใน Git
 - local branch มี commits ที่ยังไม่ได้ push ขึ้น `origin/main`
+

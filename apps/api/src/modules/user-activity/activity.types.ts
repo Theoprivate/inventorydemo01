@@ -1,10 +1,19 @@
-import type { Role } from "../../models.js";
-
 export const ACTIVITY_ACTIONS = [
-  "LOGIN_SUCCESS", "LOGIN_FAILED", "REQUEST_CREATED", "REQUEST_APPROVED",
-  "REQUEST_REJECTED", "REQUEST_FULFILLED", "STOCK_RECEIVED", "STOCK_TRANSFERRED",
-  "STOCK_ADJUSTED", "STOCK_COUNT_STARTED", "STOCK_COUNT_COMPLETED",
-  "STOCK_COUNT_REVIEWED", "ITEM_CREATED", "ITEM_UPDATED", "LOCATION_CREATED",
+  "LOGIN_SUCCESS",
+  "LOGIN_FAILED",
+  "REQUEST_CREATED",
+  "REQUEST_APPROVED",
+  "REQUEST_REJECTED",
+  "REQUEST_FULFILLED",
+  "STOCK_RECEIVED",
+  "STOCK_TRANSFERRED",
+  "STOCK_ADJUSTED",
+  "STOCK_COUNT_STARTED",
+  "STOCK_COUNT_COMPLETED",
+  "STOCK_COUNT_REVIEWED",
+  "ITEM_CREATED",
+  "ITEM_UPDATED",
+  "LOCATION_CREATED",
   "LOCATION_UPDATED",
 ] as const;
 
@@ -15,7 +24,7 @@ export type ActivityAction = typeof ACTIVITY_ACTIONS[number];
 export type ActivityEntityType = typeof ACTIVITY_ENTITY_TYPES[number];
 export type ActivityResult = typeof ACTIVITY_RESULTS[number];
 
-export interface RecordActivityInput {
+export interface CreateActivityInput {
   userId: string;
   branchId: string;
   action: ActivityAction;
@@ -40,17 +49,6 @@ export interface UserActivity {
   createdAt: string;
 }
 
-export interface XpTransaction {
-  xpTransactionId: string;
-  userId: string;
-  activityId: string;
-  xpAmount: number;
-  reason: string;
-  entityType: ActivityEntityType;
-  entityId: string;
-  createdAt: string;
-}
-
 export interface UserStats {
   userId: string;
   totalXp: number;
@@ -64,25 +62,20 @@ export interface UserStats {
   updatedAt: string;
 }
 
-export interface ActivityUser {
+export interface CreateXpTransactionInput {
   userId: string;
-  displayName: string;
-  role: Role;
-  branchId: string;
-  isActive: boolean;
+  activityId: string;
+  xpAmount: number;
+  reason: string;
+  entityType: ActivityEntityType;
+  entityId: string;
 }
 
-export interface ActivityFilters {
-  userId?: string;
-  branchId?: string;
-  action?: ActivityAction;
-  dateFrom?: string;
-  dateTo?: string;
-  limit: number;
+export interface XpTransaction extends CreateXpTransactionInput {
+  xpTransactionId: string;
+  createdAt: string;
 }
 
-export interface ActivityRecordResult {
-  activity: UserActivity;
-  xpAwarded: number;
-  alreadyRewarded: boolean;
+export interface ActivityListOptions {
+  limit?: number;
 }

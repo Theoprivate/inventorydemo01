@@ -3,9 +3,8 @@ import type { MovementType, Role, StockBalance, StockMovement } from "../models.
 import { AppError } from "../errors.js";
 
 export async function verifyUserPassword(stored: string, supplied: string): Promise<boolean> {
-  if (stored.startsWith("$argon2")) { try { return await argon2.verify(stored, supplied); } catch { return false; } }
-  // TODO: migrate all legacy plain-text passwords in Google Sheets to Argon2id.
-  return stored === supplied;
+  if (!stored.startsWith("$argon2")) return false;
+  try { return await argon2.verify(stored, supplied); } catch { return false; }
 }
 
 const permissions = {

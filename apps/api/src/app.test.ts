@@ -1,8 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
+import argon2 from "argon2";
 import { buildApp } from "./app.js";
-import { SHEET_HEADERS, type SheetName, type SheetRecord } from "./models.js";
+import { SHEET_HEADERS, type EmployeeKpiDaily, type SheetName, type SheetRecord, type UserActivity, type UserStats, type XpTransaction } from "./models.js";
 import type { InventoryRepository } from "./repositories/inventory-repository.js";
+import { employeeKpiDailyRecord, mapEmployeeKpiDaily, mapUser, mapUserActivity, mapUserStats, mapXpTransaction, userActivityRecord, userStatsRecord, xpTransactionRecord } from "./utils/mappers.js";
 
 class MemoryRepository implements InventoryRepository {
   data = {} as Record<SheetName, SheetRecord[]>;
@@ -14,20 +16,39 @@ class MemoryRepository implements InventoryRepository {
   async clearAndWrite(tab: SheetName, records: SheetRecord[]) { this.data[tab] = structuredClone(records); }
   invalidate() {}
   async checkSchema() { return (Object.keys(SHEET_HEADERS) as SheetName[]).map((tab) => ({ tab, missingHeaders: [], exists: true })); }
+  async findUserById(userId: string) { return this.data.Users.map(mapUser).find((user) => user.userId === userId); }
+  async findUserByUsername(username: string) { return this.data.Users.map(mapUser).find((user) => user.username === username); }
+  async updateLastLogin(userId: string, timestamp: string) { this.updateUserTimestamp(userId, "Last_Login_At", timestamp); }
+  async updateLastActive(userId: string, timestamp: string) { this.updateUserTimestamp(userId, "Last_Active_At", timestamp); }
+  async appendActivity(activity: UserActivity) { this.data.User_Activities.push(userActivityRecord(activity)); }
+  async findActivitiesByUser(userId: string) { return this.data.User_Activities.map(mapUserActivity).filter((activity) => activity.userId === userId); }
+  async findActivityById(activityId: string) { return this.data.User_Activities.map(mapUserActivity).find((activity) => activity.activityId === activityId); }
+  async findActivityByEntity(entityType: string, entityId: string) { return this.data.User_Activities.map(mapUserActivity).filter((activity) => activity.entityType === entityType && activity.entityId === entityId); }
+  async appendXpTransaction(transaction: XpTransaction) { this.data.XP_Transactions.push(xpTransactionRecord(transaction)); }
+  async findXpTransactionsByUser(userId: string) { return this.data.XP_Transactions.map(mapXpTransaction).filter((transaction) => transaction.userId === userId); }
+  async findXpTransactionByActivityId(activityId: string) { return this.data.XP_Transactions.map(mapXpTransaction).find((transaction) => transaction.activityId === activityId); }
+  async sumXpByUser(userId: string) { return (await this.findXpTransactionsByUser(userId)).reduce((total, transaction) => total + transaction.xpAmount, 0); }
+  async findUserStats(userId: string) { return this.data.User_Stats.map(mapUserStats).find((stats) => stats.userId === userId); }
+  async upsertUserStats(stats: UserStats) { await this.upsert("User_Stats", "User_ID", [userStatsRecord(stats)]); }
+  async findDailyKpi(userId: string, kpiDate: string) { return this.data.Employee_KPI_Daily.map(mapEmployeeKpiDaily).find((kpi) => kpi.userId === userId && kpi.kpiDate === kpiDate); }
+  async upsertDailyKpi(kpi: EmployeeKpiDaily) { const existing = await this.findDailyKpi(kpi.userId, kpi.kpiDate); await this.upsert("Employee_KPI_Daily", "KPI_ID", [employeeKpiDailyRecord(existing ? { ...kpi, kpiId: existing.kpiId } : kpi)]); }
+  private updateUserTimestamp(userId: string, header: "Last_Login_At" | "Last_Active_At", timestamp: string) { const user = this.data.Users.find((row) => row.User_ID === userId); if (user) { user[header] = timestamp; user.Updated_At = timestamp; } }
 }
 
 describe("inventory API", () => {
   const repository = new MemoryRepository(); let app: FastifyInstance; let cookie = ""; const roleCookies: Partial<Record<"owner" | "manager" | "stock" | "staff", string>> = {};
   beforeAll(async () => {
     process.env.JWT_SECRET = "unit-test-secret-that-is-not-used-outside-tests";
+    const passwordHash = await argon2.hash("pass", { type: argon2.argon2id });
     repository.data.Users = [
-      { User_ID: "U1", Username: "staff", Password: "pass", Display_Name: "Staff", Role: "staff", Branch_ID: "B1", Is_Active: "TRUE", Created_At: "" },
-      { User_ID: "U2", Username: "owner", Password: "pass", Display_Name: "Owner", Role: "owner", Branch_ID: "B1", Is_Active: "TRUE", Created_At: "" },
-      { User_ID: "U3", Username: "manager", Password: "pass", Display_Name: "Manager", Role: "manager", Branch_ID: "B1", Is_Active: "TRUE", Created_At: "" },
-      { User_ID: "U4", Username: "stock", Password: "pass", Display_Name: "Stock", Role: "stock", Branch_ID: "B1", Is_Active: "TRUE", Created_At: "" },
-      { User_ID: "U5", Username: "other-staff", Password: "pass", Display_Name: "Other Staff", Role: "staff", Branch_ID: "B2", Is_Active: "TRUE", Created_At: "" },
+      { User_ID: "U1", Username: "staff", Password: "wrong-plain", Display_Name: "Staff", Role: "staff", Branch_ID: "B1", Is_Active: "TRUE", Created_At: "", Password_Hash: passwordHash, Avatar_URL: "", Last_Login_At: "", Last_Active_At: "", Updated_At: "" },
+      { User_ID: "U2", Username: "owner", Password: "wrong-plain", Display_Name: "Owner", Role: "owner", Branch_ID: "B1", Is_Active: "TRUE", Created_At: "", Password_Hash: passwordHash, Avatar_URL: "", Last_Login_At: "", Last_Active_At: "", Updated_At: "" },
+      { User_ID: "U3", Username: "manager", Password: "wrong-plain", Display_Name: "Manager", Role: "manager", Branch_ID: "B1", Is_Active: "TRUE", Created_At: "", Password_Hash: passwordHash, Avatar_URL: "", Last_Login_At: "", Last_Active_At: "", Updated_At: "" },
+      { User_ID: "U4", Username: "stock", Password: "wrong-plain", Display_Name: "Stock", Role: "stock", Branch_ID: "B1", Is_Active: "TRUE", Created_At: "", Password_Hash: passwordHash, Avatar_URL: "", Last_Login_At: "", Last_Active_At: "", Updated_At: "" },
+      { User_ID: "U5", Username: "legacy", Password: "pass", Display_Name: "Legacy", Role: "staff", Branch_ID: "B1", Is_Active: "TRUE", Created_At: "", Password_Hash: "", Avatar_URL: "", Last_Login_At: "", Last_Active_At: "", Updated_At: "" },
+      { User_ID: "U6", Username: "inactive", Password: "", Display_Name: "Inactive", Role: "staff", Branch_ID: "B1", Is_Active: "FALSE", Created_At: "", Password_Hash: passwordHash, Avatar_URL: "", Last_Login_At: "", Last_Active_At: "", Updated_At: "" },
     ];
-    repository.data.Branches = [{ Branch_ID: "B1", Branch_Name: "Demo", Is_Active: "TRUE", Created_At: "" }, { Branch_ID: "B2", Branch_Name: "Other", Is_Active: "TRUE", Created_At: "" }];
+    repository.data.Branches = [{ Branch_ID: "B1", Branch_Name: "Demo", Is_Active: "TRUE", Created_At: "" }];
     repository.data.Categories = [{ Category_ID: "C1", Category_Name: "วัตถุดิบ", Sort_Order: 1, Is_Active: "TRUE" }];
     repository.data.Items = [
       { Item_ID: "I1", Item_Name: "ข้าว", Category_ID: "C1", Unit: "kg", Image_URL: "", Description: "", Is_Active: "TRUE", Created_At: "created-at" },
@@ -48,7 +69,9 @@ describe("inventory API", () => {
     cookie = roleCookies.staff ?? "";
   });
   afterAll(async () => app.close());
-  it("authenticates with an httpOnly cookie", async () => { const response = await app.inject({ method: "GET", url: "/api/v1/auth/me", headers: { cookie } }); expect(response.statusCode).toBe(200); expect(response.json().data).not.toHaveProperty("password"); });
+  it("authenticates with Password_Hash, updates Last_Login_At, and does not expose password fields", async () => { const response = await app.inject({ method: "GET", url: "/api/v1/auth/me", headers: { cookie } }); expect(response.statusCode).toBe(200); expect(response.json().data).not.toHaveProperty("password"); expect(response.json().data).not.toHaveProperty("passwordHash"); expect(repository.data.Users.find((row) => row.User_ID === "U1")?.Last_Login_At).toBeTruthy(); });
+  it("does not allow the legacy plain-text Password column to authenticate", async () => { const response = await app.inject({ method: "POST", url: "/api/v1/auth/login", payload: { username: "legacy", password: "pass" } }); expect(response.statusCode).toBe(401); });
+  it("does not allow inactive users to authenticate", async () => { const response = await app.inject({ method: "POST", url: "/api/v1/auth/login", payload: { username: "inactive", password: "pass" } }); expect(response.statusCode).toBe(401); });
   it("enforces backend RBAC", async () => { const response = await app.inject({ method: "POST", url: "/api/v1/items", headers: { cookie }, payload: { itemName: "x", categoryId: "C1", unit: "ea" } }); expect(response.statusCode).toBe(403); });
   it("allows owner and manager to update an item by Item_ID", async () => {
     const before = repository.data.Items.length;
@@ -86,24 +109,4 @@ describe("inventory API", () => {
   it("rejects zero and negative quantities", async () => { for (const requestedQty of [0, -1]) { const response = await app.inject({ method: "POST", url: "/api/v1/stock-requests", headers: { cookie }, payload: { items: [{ itemId: "I1", requestedQty, unit: "kg" }] } }); expect(response.statusCode).toBe(400); } });
   it("merges duplicate items before writing", async () => { const before = repository.data.Stock_Request_Items.length; const response = await app.inject({ method: "POST", url: "/api/v1/stock-requests", headers: { cookie }, payload: { items: [{ itemId: "I1", requestedQty: 2, unit: "kg" }, { itemId: "I1", requestedQty: 3, unit: "kg" }] } }); expect(response.json().data.itemCount).toBe(1); expect(repository.data.Stock_Request_Items[before]?.Requested_Qty).toBe(5); });
   it("does not duplicate a retried request with the same idempotency key", async () => { const key = "123e4567-e89b-42d3-a456-426614174000"; const payload = { items: [{ itemId: "I1", requestedQty: 1, unit: "kg" }] }; const before = repository.data.Stock_Requests.length; const first = await app.inject({ method: "POST", url: "/api/v1/stock-requests", headers: { cookie, "idempotency-key": key }, payload }); const second = await app.inject({ method: "POST", url: "/api/v1/stock-requests", headers: { cookie, "idempotency-key": key }, payload }); expect(second.json().data.requestId).toBe(first.json().data.requestId); expect(repository.data.Stock_Requests).toHaveLength(before + 1); });
-  it("forbids staff from team stats", async () => { const response = await app.inject({ method: "GET", url: "/api/team/stats", headers: { cookie } }); expect(response.statusCode).toBe(403); });
-  it("limits manager team stats to the authenticated branch", async () => { const response = await app.inject({ method: "GET", url: "/api/team/stats", headers: { cookie: roleCookies.manager } }); expect(response.statusCode).toBe(200); expect(response.json().data.length).toBeGreaterThan(0); expect(response.json().data.every((value: { branchId: string }) => value.branchId === "B1")).toBe(true); expect(response.json().data.some((value: { userId: string }) => value.userId === "U5")).toBe(false); });
-  it("returns only the authenticated user's activities and stats", async () => {
-    const [activities, stats] = await Promise.all([
-      app.inject({ method: "GET", url: "/api/me/activities?limit=100", headers: { cookie } }),
-      app.inject({ method: "GET", url: "/api/me/stats", headers: { cookie } }),
-    ]);
-    expect(activities.statusCode).toBe(200);
-    expect(activities.json().data.length).toBeGreaterThan(0);
-    expect(activities.json().data.every((value: { userId: string }) => value.userId === "U1")).toBe(true);
-    expect(stats.json().data).toMatchObject({ userId: "U1", role: "staff", branchId: "B1", level: 1 });
-  });
-  it("forces manager activity-log queries to the authenticated branch", async () => { const response = await app.inject({ method: "GET", url: "/api/activity-log?branchId=B2&limit=100", headers: { cookie: roleCookies.manager } }); expect(response.statusCode).toBe(200); expect(response.json().data.length).toBeGreaterThan(0); expect(response.json().data.every((value: { branchId: string }) => value.branchId === "B1")).toBe(true); });
-  it("does not reward a draft stock count", async () => {
-    const before = repository.data.XP_Transactions.length;
-    const response = await app.inject({ method: "POST", url: "/api/v1/stock-counts", headers: { cookie: roleCookies.stock }, payload: { locationId: "L1", countRound: "ADHOC", status: "DRAFT", items: [{ itemId: "I1", countedQty: 0, unit: "kg" }] } });
-    expect(response.statusCode).toBe(200);
-    expect(repository.data.User_Activities.at(-1)).toMatchObject({ Action: "STOCK_COUNT_STARTED", Entity_ID: response.json().data.countId });
-    expect(repository.data.XP_Transactions).toHaveLength(before);
-  });
 });

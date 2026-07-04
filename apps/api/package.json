@@ -9,6 +9,7 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
+    "hash-password": "tsx scripts/hash-password.ts",
     "sheets:check": "tsx scripts/check-google-sheets.ts",
     "sheets:check-requests": "tsx scripts/check-request-flow.ts",
     "start": "node dist/server.js"

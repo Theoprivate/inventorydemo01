@@ -1,84 +1,102 @@
 import { describe, expect, it } from "vitest";
 import type { ActivityRepository } from "./activity.repository.js";
 import { ActivityService } from "./activity.service.js";
-import type { ActivityFilters, ActivityUser, UserActivity, UserStats, XpTransaction } from "./activity.types.js";
+import type { ActivityListOptions, UserActivity, UserStats, XpTransaction } from "./activity.types.js";
+import { generateActivityId, generateXpTransactionId, getBangkokDate, getIsoTimestamp } from "./activity.utils.js";
 
 class MemoryActivityRepository implements ActivityRepository {
   activities: UserActivity[] = [];
   transactions: XpTransaction[] = [];
   stats = new Map<string, UserStats>();
-  users: ActivityUser[] = [];
-  async appendActivity(value: UserActivity) { this.activities.push(structuredClone(value)); }
-  async listActivities(filters: ActivityFilters) { return this.activities.filter((value) => (!filters.userId || value.userId === filters.userId) && (!filters.branchId || value.branchId === filters.branchId) && (!filters.action || value.action === filters.action) && (!filters.dateFrom || value.activityDate >= filters.dateFrom) && (!filters.dateTo || value.activityDate <= filters.dateTo)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, filters.limit); }
-  async appendXpTransaction(value: XpTransaction) { this.transactions.push(structuredClone(value)); }
-  async listXpTransactions(userId?: string) { return this.transactions.filter((value) => !userId || value.userId === userId).map((value) => structuredClone(value)); }
-  async getUserStats(userId: string) { const value = this.stats.get(userId); return value ? structuredClone(value) : undefined; }
-  async listUserStats() { return [...this.stats.values()].map((value) => structuredClone(value)); }
-  async upsertUserStats(value: UserStats) { this.stats.set(value.userId, structuredClone(value)); }
-  async listUsers() { return structuredClone(this.users); }
+
+  async appendActivity(activity: UserActivity) { this.activities.push(structuredClone(activity)); }
+  async findActivitiesByUser(userId: string, options?: ActivityListOptions) { return this.limit(this.activities.filter((activity) => activity.userId === userId), options); }
+  async findActivitiesByBranch(branchId: string, options?: ActivityListOptions) { return this.limit(this.activities.filter((activity) => activity.branchId === branchId), options); }
+  async findUserStatsByUserId(userId: string) { const value = this.stats.get(userId); return value ? structuredClone(value) : undefined; }
+  async saveUserStats(stats: UserStats) { this.stats.set(stats.userId, structuredClone(stats)); }
+  async findXpTransactionByActivityId(activityId: string) { return this.transactions.find((transaction) => transaction.activityId === activityId); }
+  async appendXpTransaction(transaction: XpTransaction) { this.transactions.push(structuredClone(transaction)); }
+
+  private limit(values: UserActivity[], options?: ActivityListOptions) {
+    return structuredClone(options?.limit === undefined ? values : values.slice(0, options.limit));
+  }
 }
 
-const input = (action: "LOGIN_SUCCESS" | "REQUEST_CREATED" | "REQUEST_REJECTED") => ({ userId: "U1", branchId: "B1", action, entityType: action.startsWith("LOGIN") ? "USER" as const : "REQUEST" as const, entityId: action.startsWith("LOGIN") ? "U1" : "REQ-1", result: "SUCCESS" as const });
+const activityInput = {
+  userId: "U001",
+  branchId: "B001",
+  action: "REQUEST_CREATED" as const,
+  entityType: "REQUEST" as const,
+  entityId: "REQ-001",
+  result: "SUCCESS" as const,
+  detail: "created",
+  metadata: { source: "test" },
+};
+
+describe("activity utilities", () => {
+  it("generates prefixed UUID identifiers", () => {
+    expect(generateActivityId()).toMatch(/^ACT-[0-9a-f-]{36}$/i);
+    expect(generateXpTransactionId()).toMatch(/^XPT-[0-9a-f-]{36}$/i);
+  });
+
+  it("formats Bangkok dates and ISO timestamps", () => {
+    const value = new Date("2026-07-03T18:30:00.000Z");
+    expect(getBangkokDate(value)).toBe("2026-07-04");
+    expect(getIsoTimestamp(value)).toBe("2026-07-03T18:30:00.000Z");
+  });
+});
 
 describe("ActivityService", () => {
-  it("does not create XP for an action without a rule", async () => {
+  it("creates an activity without awarding XP or updating user stats", async () => {
     const repository = new MemoryActivityRepository();
-    const service = new ActivityService(repository);
-    const result = await service.recordActivity(input("REQUEST_REJECTED"));
-    expect(result.xpAwarded).toBe(0);
+    const service = new ActivityService(repository, () => new Date("2026-07-03T18:30:00.000Z"));
+
+    const activity = await service.createActivity(activityInput);
+
+    expect(activity).toMatchObject({
+      activityDate: "2026-07-04",
+      userId: "U001",
+      metadataJson: '{"source":"test"}',
+      createdAt: "2026-07-03T18:30:00.000Z",
+    });
+    expect(activity.activityId).toMatch(/^ACT-[0-9a-f-]{36}$/i);
+    expect(repository.activities).toEqual([activity]);
     expect(repository.transactions).toHaveLength(0);
+    expect(repository.stats).toHaveLength(0);
   });
 
-  it("does not reward the same Activity_ID twice", async () => {
+  it("creates at most one XP transaction for an Activity_ID", async () => {
+    const repository = new MemoryActivityRepository();
+    const service = new ActivityService(repository, () => new Date("2026-07-04T00:00:00.000Z"));
+    const activity = await service.createActivity(activityInput);
+    const input = { userId: "U001", activityId: activity.activityId, xpAmount: 10, reason: "manual phase-1 test", entityType: "REQUEST" as const, entityId: "REQ-001" };
+
+    const first = await service.createXpTransaction(input);
+    const second = await service.createXpTransaction(input);
+
+    expect(first.xpTransactionId).toMatch(/^XPT-[0-9a-f-]{36}$/i);
+    expect(second).toEqual(first);
+    expect(repository.transactions).toHaveLength(1);
+  });
+
+  it("validates and saves a complete User_Stats row", async () => {
     const repository = new MemoryActivityRepository();
     const service = new ActivityService(repository);
-    const first = await service.recordActivity(input("REQUEST_CREATED"));
-    const second = await service.awardXpForActivity(first.activity);
-    expect(second).toEqual({ xpAwarded: 0, alreadyRewarded: true });
-    expect(repository.transactions).toHaveLength(1);
-    expect(repository.stats.get("U1")?.totalXp).toBe(10);
-  });
+    const stats: UserStats = {
+      userId: "U001",
+      totalXp: 5,
+      currentLevel: 1,
+      currentLevelXp: 5,
+      nextLevelXp: 100,
+      currentStreak: 1,
+      longestStreak: 1,
+      lastActiveDate: "2026-07-04",
+      lastXpAt: "2026-07-03T18:58:56.102Z",
+      updatedAt: "2026-07-03T18:58:58.472Z",
+    };
 
-  it("rewards LOGIN_SUCCESS only once on the same Bangkok date", async () => {
-    const repository = new MemoryActivityRepository();
-    let current = new Date("2026-07-03T01:00:00.000Z");
-    const service = new ActivityService(repository, { now: () => current });
-    const first = await service.recordActivity(input("LOGIN_SUCCESS"));
-    current = new Date("2026-07-03T12:00:00.000Z");
-    const second = await service.recordActivity(input("LOGIN_SUCCESS"));
-    expect(first.xpAwarded).toBe(5);
-    expect(second).toMatchObject({ xpAwarded: 0, alreadyRewarded: true });
-    expect(repository.transactions).toHaveLength(1);
-  });
+    await service.saveUserStats(stats);
 
-  it("rewards LOGIN_SUCCESS again on a different Bangkok date", async () => {
-    const repository = new MemoryActivityRepository();
-    let current = new Date("2026-07-03T01:00:00.000Z");
-    const service = new ActivityService(repository, { now: () => current });
-    await service.recordActivity(input("LOGIN_SUCCESS"));
-    current = new Date("2026-07-04T01:00:00.000Z");
-    const second = await service.recordActivity(input("LOGIN_SUCCESS"));
-    expect(second.xpAwarded).toBe(5);
-    expect(repository.transactions).toHaveLength(2);
-  });
-
-  it("increments streak on consecutive active dates", async () => {
-    const repository = new MemoryActivityRepository();
-    let current = new Date("2026-07-03T01:00:00.000Z");
-    const service = new ActivityService(repository, { now: () => current });
-    await service.recordActivity(input("REQUEST_REJECTED"));
-    current = new Date("2026-07-04T01:00:00.000Z");
-    await service.recordActivity({ ...input("REQUEST_REJECTED"), entityId: "REQ-2" });
-    expect(repository.stats.get("U1")).toMatchObject({ currentStreak: 2, longestStreak: 2, lastActiveDate: "2026-07-04" });
-  });
-
-  it("resets streak after a skipped active date", async () => {
-    const repository = new MemoryActivityRepository();
-    let current = new Date("2026-07-03T01:00:00.000Z");
-    const service = new ActivityService(repository, { now: () => current });
-    await service.recordActivity(input("REQUEST_REJECTED"));
-    current = new Date("2026-07-05T01:00:00.000Z");
-    await service.recordActivity({ ...input("REQUEST_REJECTED"), entityId: "REQ-3" });
-    expect(repository.stats.get("U1")).toMatchObject({ currentStreak: 1, longestStreak: 1, lastActiveDate: "2026-07-05" });
+    await expect(service.findUserStatsByUserId("U001")).resolves.toEqual(stats);
   });
 });

@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
+import argon2 from "argon2";
 import type { StockBalance, StockMovement } from "../models.js";
 import { applyMovementToBalances, countVariance, requestStatus, roleCan, validateMovement, verifyUserPassword } from "./rules.js";
 
 describe("password verifier", () => {
-  it("supports legacy plain text without exposing it", async () => {
-    expect(await verifyUserPassword("demo-secret", "demo-secret")).toBe(true);
-    expect(await verifyUserPassword("demo-secret", "wrong")).toBe(false);
+  it("accepts only a valid Argon2 hash", async () => {
+    const hash = await argon2.hash("demo-secret", { type: argon2.argon2id });
+    expect(await verifyUserPassword(hash, "demo-secret")).toBe(true);
+    expect(await verifyUserPassword(hash, "wrong")).toBe(false);
+    expect(await verifyUserPassword("demo-secret", "demo-secret")).toBe(false);
   });
 });
 

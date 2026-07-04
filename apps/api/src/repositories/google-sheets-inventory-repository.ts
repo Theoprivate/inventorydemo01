@@ -1,6 +1,7 @@
 import type { sheets_v4 } from "googleapis";
-import { SHEET_HEADERS, type SheetName, type SheetRecord } from "../models.js";
+import { SHEET_HEADERS, type EmployeeKpiDaily, type SheetName, type SheetRecord, type User, type UserActivity, type UserStats, type XpTransaction } from "../models.js";
 import { assertHeaders, filterValidItemRecords, rowsToRecords, stringCell, toSheetValue } from "../utils/sheets.js";
+import { employeeKpiDailyRecord, mapEmployeeKpiDaily, mapUser, mapUserActivity, mapUserStats, mapXpTransaction, userActivityRecord, userStatsRecord, xpTransactionRecord } from "../utils/mappers.js";
 import { AppError, sheetsWriteError } from "../errors.js";
 import type { InventoryRepository } from "./inventory-repository.js";
 
@@ -101,6 +102,73 @@ export class GoogleSheetsInventoryRepository implements InventoryRepository {
 
   invalidate(tab?: SheetName): void { if (tab) this.cache.delete(tab); else this.cache.clear(); }
 
+  async findUserById(userId: string): Promise<User | undefined> {
+    return (await this.read("Users", { fresh: true })).map(mapUser).find((user) => user.userId === userId);
+  }
+
+  async findUserByUsername(username: string): Promise<User | undefined> {
+    return (await this.read("Users", { fresh: true })).map(mapUser).find((user) => user.username === username);
+  }
+
+  async updateLastLogin(userId: string, timestamp: string): Promise<void> {
+    await this.updateUserTimestamps(userId, "Last_Login_At", timestamp);
+  }
+
+  async updateLastActive(userId: string, timestamp: string): Promise<void> {
+    await this.updateUserTimestamps(userId, "Last_Active_At", timestamp);
+  }
+
+  async appendActivity(activity: UserActivity): Promise<void> {
+    await this.append("User_Activities", [userActivityRecord(activity)]);
+  }
+
+  async findActivitiesByUser(userId: string): Promise<UserActivity[]> {
+    return (await this.read("User_Activities", { fresh: true })).map(mapUserActivity).filter((activity) => activity.userId === userId).sort(newestFirst);
+  }
+
+  async findActivityById(activityId: string): Promise<UserActivity | undefined> {
+    return (await this.read("User_Activities", { fresh: true })).map(mapUserActivity).find((activity) => activity.activityId === activityId);
+  }
+
+  async findActivityByEntity(entityType: string, entityId: string): Promise<UserActivity[]> {
+    return (await this.read("User_Activities", { fresh: true })).map(mapUserActivity).filter((activity) => activity.entityType === entityType && activity.entityId === entityId).sort(newestFirst);
+  }
+
+  async appendXpTransaction(transaction: XpTransaction): Promise<void> {
+    await this.append("XP_Transactions", [xpTransactionRecord(transaction)]);
+  }
+
+  async findXpTransactionsByUser(userId: string): Promise<XpTransaction[]> {
+    return (await this.read("XP_Transactions", { fresh: true })).map(mapXpTransaction).filter((transaction) => transaction.userId === userId).sort(newestFirst);
+  }
+
+  async findXpTransactionByActivityId(activityId: string): Promise<XpTransaction | undefined> {
+    return (await this.read("XP_Transactions", { fresh: true })).map(mapXpTransaction).find((transaction) => transaction.activityId === activityId);
+  }
+
+  async sumXpByUser(userId: string): Promise<number> {
+    return (await this.findXpTransactionsByUser(userId)).reduce((total, transaction) => total + transaction.xpAmount, 0);
+  }
+
+  async findUserStats(userId: string): Promise<UserStats | undefined> {
+    return (await this.read("User_Stats", { fresh: true })).map(mapUserStats).find((stats) => stats.userId === userId);
+  }
+
+  async upsertUserStats(stats: UserStats): Promise<void> {
+    await this.upsert("User_Stats", "User_ID", [userStatsRecord(stats)]);
+  }
+
+  async findDailyKpi(userId: string, kpiDate: string): Promise<EmployeeKpiDaily | undefined> {
+    return (await this.read("Employee_KPI_Daily", { fresh: true })).map(mapEmployeeKpiDaily).find((kpi) => kpi.userId === userId && kpi.kpiDate === kpiDate);
+  }
+
+  async upsertDailyKpi(kpi: EmployeeKpiDaily): Promise<void> {
+    const existing = await this.findDailyKpi(kpi.userId, kpi.kpiDate);
+    const value = existing ? { ...kpi, kpiId: existing.kpiId } : kpi;
+    if (!value.kpiId) throw new AppError(400, "KPI_ID_REQUIRED", "KPI_ID is required");
+    await this.upsert("Employee_KPI_Daily", "KPI_ID", [employeeKpiDailyRecord(value)]);
+  }
+
   async checkSchema(): Promise<Array<{ tab: SheetName; missingHeaders: string[]; exists: boolean }>> {
     const metadata = await this.sheets.spreadsheets.get({ spreadsheetId: this.spreadsheetId, fields: "sheets.properties.title" });
     const titles = new Set((metadata.data.sheets ?? []).map((sheet) => sheet.properties?.title ?? ""));
@@ -114,6 +182,38 @@ export class GoogleSheetsInventoryRepository implements InventoryRepository {
       return { tab, missingHeaders: SHEET_HEADERS[tab].filter((header) => !actual.includes(header)), exists: true };
     });
   }
+
+  private async updateUserTimestamps(userId: string, targetHeader: "Last_Login_At" | "Last_Active_At", timestamp: string): Promise<void> {
+    const headers = SHEET_HEADERS.Users;
+    const response = await this.sheets.spreadsheets.values.get({ spreadsheetId: this.spreadsheetId, range: `Users!A:${columnName(headers.length)}` });
+    const rows = (response.data.values ?? []) as string[][];
+    assertHeaders("Users", headers, rows[0] ?? []);
+    const userIdIndex = headers.indexOf("User_ID");
+    const rowIndex = rows.slice(1).findIndex((row) => stringCell(row[userIdIndex]) === userId);
+    if (rowIndex < 0) throw new AppError(404, "USER_NOT_FOUND", "ไม่พบผู้ใช้");
+    const rowNumber = rowIndex + 2;
+    const targetColumn = columnName(headers.indexOf(targetHeader) + 1);
+    const updatedColumn = columnName(headers.indexOf("Updated_At") + 1);
+    try {
+      await this.sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: this.spreadsheetId,
+        requestBody: {
+          valueInputOption: "RAW",
+          data: [
+            { range: `Users!${targetColumn}${rowNumber}`, values: [[timestamp]] },
+            { range: `Users!${updatedColumn}${rowNumber}`, values: [[timestamp]] },
+          ],
+        },
+      });
+    } catch (error) {
+      throw sheetsWriteError(error);
+    }
+    this.invalidate("Users");
+  }
+}
+
+function newestFirst<T extends { createdAt: string }>(a: T, b: T): number {
+  return b.createdAt.localeCompare(a.createdAt);
 }
 
 function nextDataRow(rows: string[][]): number {

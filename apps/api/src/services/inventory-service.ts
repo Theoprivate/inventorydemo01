@@ -4,26 +4,20 @@ import type { InventoryRepository } from "../repositories/inventory-repository.j
 import { balanceRecord, countItemRecord, countRecord, itemRecord, locationRecord, mapBalance, mapBranch, mapCategory, mapCount, mapCountItem, mapItem, mapLocation, mapMovement, mapRequest, mapRequestItem, mapStoreItem, mapUser, movementRecord, requestItemRecord, requestRecord, storeItemRecord } from "../utils/mappers.js";
 import { balanceId, createId } from "../utils/ids.js";
 import { applyMovementToBalances, countVariance, requestStatus, validateMovement, verifyUserPassword } from "./rules.js";
-import type { ActivityService } from "../modules/user-activity/activity.service.js";
-import type { ActivityAction, ActivityEntityType } from "../modules/user-activity/activity.types.js";
 
 const now = () => new Date().toISOString();
 const today = () => now().slice(0, 10);
 
 export class InventoryService {
-  constructor(private readonly repository: InventoryRepository, private readonly activityService?: ActivityService) {}
+  constructor(private readonly repository: InventoryRepository) {}
 
   async login(username: string, password: string): Promise<SessionUser | null> {
-    const users = (await this.repository.read("Users", { fresh: true })).map(mapUser);
-    const user = users.find((candidate) => candidate.username === username && candidate.isActive);
-    if (!user || !(await verifyUserPassword(user.password, password))) return null;
+    const user = await this.repository.findUserByUsername(username);
+    if (!user?.isActive || !(await verifyUserPassword(user.passwordHash, password))) return null;
     const branch = (await this.branches()).find((v) => v.branchId === user.branchId && v.isActive);
     if (!branch) throw new AppError(403, "BRANCH_INACTIVE", "สาขาของผู้ใช้ไม่ได้เปิดใช้งาน");
+    await this.repository.updateLastLogin(user.userId, now());
     return { userId: user.userId, username: user.username, displayName: user.displayName, role: user.role, branchId: user.branchId, branchName: branch.branchName };
-  }
-
-  async findUserByUsername(username: string) {
-    return (await this.repository.read("Users", { fresh: true })).map(mapUser).find((user) => user.username === username);
   }
 
   async branches() { return (await this.repository.read("Branches")).map(mapBranch); }
@@ -33,7 +27,7 @@ export class InventoryService {
   async storeItems(branchId: string) { return (await this.repository.read("Store_Items")).map(mapStoreItem).filter((v) => v.branchId === branchId); }
   async balances(branchId: string) { return (await this.repository.read("Stock_Balances", { fresh: true })).map(mapBalance).filter((v) => v.branchId === branchId); }
 
-  async saveItem(user: SessionUser, input: Partial<Item>): Promise<Item> {
+  async saveItem(input: Partial<Item>): Promise<Item> {
     const existing = input.itemId ? (await this.items()).find((value) => value.itemId === input.itemId) : undefined;
     if (input.itemId && !existing) throw new AppError(404, "ITEM_NOT_FOUND", "ไม่พบไอเทมที่ต้องการแก้ไข");
     const itemName = input.itemName?.trim() ?? existing?.itemName ?? "";
@@ -52,21 +46,14 @@ export class InventoryService {
     };
     await this.repository.upsert("Items", "Item_ID", [itemRecord(value)]);
     this.repository.invalidate("Items");
-    await this.record(user, existing ? "ITEM_UPDATED" : "ITEM_CREATED", "ITEM", value.itemId);
     return value;
   }
 
-  async saveLocation(user: SessionUser, input: Partial<Location>): Promise<Location> {
-    const existing = input.locationId ? (await this.locations()).find((value) => value.locationId === input.locationId) : undefined;
-    if (input.locationId && !existing) throw new AppError(404, "LOCATION_NOT_FOUND", "ไม่พบตำแหน่งที่ต้องการแก้ไข");
-    if (existing && user.role !== "owner" && existing.branchId !== user.branchId) throw new AppError(403, "BRANCH_FORBIDDEN", "ไม่สามารถแก้ข้อมูลต่างสาขาได้");
-    const branchId = existing?.branchId ?? (user.role === "owner" && input.branchId ? input.branchId : user.branchId);
-    const locationName = input.locationName?.trim() ?? existing?.locationName ?? "";
-    const locationType = input.locationType ?? existing?.locationType;
-    if (!locationName || !locationType) throw new AppError(400, "INVALID_LOCATION", "กรุณาระบุชื่อและประเภทตำแหน่ง");
-    const value: Location = { locationId: existing?.locationId ?? createId("L"), locationName, branchId, locationType, isActive: input.isActive ?? existing?.isActive ?? true };
+  async saveLocation(user: SessionUser, input: Partial<Location> & Pick<Location, "locationName" | "locationType">): Promise<Location> {
+    const branchId = user.role === "owner" && input.branchId ? input.branchId : user.branchId;
+    const existing = input.locationId ? (await this.locations(branchId)).find((v) => v.locationId === input.locationId) : undefined;
+    const value: Location = { locationId: existing?.locationId ?? createId("L"), locationName: input.locationName.trim(), branchId, locationType: input.locationType, isActive: input.isActive ?? existing?.isActive ?? true };
     await this.repository.upsert("Locations", "Location_ID", [locationRecord(value)]);
-    await this.record(user, existing ? "LOCATION_UPDATED" : "LOCATION_CREATED", "LOCATION", value.locationId, undefined, value.branchId);
     return value;
   }
 
@@ -113,7 +100,6 @@ export class InventoryService {
       const existing = (await this.repository.read("Stock_Requests", { fresh: true })).map(mapRequest).find((value) => value.requestId === requestId);
       if (!existing || existing.branchId !== user.branchId || existing.requestedBy !== user.userId) throw new AppError(409, "DUPLICATE_REQUEST_ID", "Request_ID นี้ถูกใช้งานแล้ว");
     }
-    if (created) await this.record(user, "REQUEST_CREATED", "REQUEST", requestId, { itemCount: requestItems.length });
     return { requestId, status: "PENDING", itemCount: requestItems.length };
   }
 
@@ -136,17 +122,14 @@ export class InventoryService {
   }
 
   async cancelRequest(user: SessionUser, requestId: string): Promise<StockRequest> { const detail = await this.requestDetail(user, requestId); if (detail.requestStatus !== "PENDING") throw new AppError(409, "REQUEST_NOT_PENDING", "ยกเลิกได้เฉพาะคำขอที่รอดำเนินการ"); const value = { ...detail, requestStatus: "CANCELLED" as const }; await this.repository.upsert("Stock_Requests", "Request_ID", [requestRecord(value)]); return value; }
-  async rejectRequest(user: SessionUser, requestId: string): Promise<StockRequest> { const detail = await this.requestDetail(user, requestId); if (detail.requestStatus === "REJECTED") return detail; const value = { ...detail, requestStatus: "REJECTED" as const, approvedBy: user.userId, completedAt: now() }; await this.repository.upsert("Stock_Requests", "Request_ID", [requestRecord(value)]); await this.record(user, "REQUEST_REJECTED", "REQUEST", requestId); return value; }
+  async rejectRequest(user: SessionUser, requestId: string): Promise<StockRequest> { const detail = await this.requestDetail(user, requestId); const value = { ...detail, requestStatus: "REJECTED" as const, approvedBy: user.userId, completedAt: now() }; await this.repository.upsert("Stock_Requests", "Request_ID", [requestRecord(value)]); return value; }
 
   async approveRequest(user: SessionUser, requestId: string, approvals: Array<{ requestItemId: string; approvedQty: number }>): Promise<RequestDetail> {
     const detail = await this.requestDetail(user, requestId);
-    if (detail.requestStatus === "APPROVED") return detail;
-    if (detail.requestStatus !== "PENDING") throw new AppError(409, "REQUEST_NOT_PENDING", "อนุมัติได้เฉพาะคำขอที่รอดำเนินการ");
     const items = detail.items.map((item) => { const approval = approvals.find((v) => v.requestItemId === item.requestItemId); const qty = approval?.approvedQty ?? item.requestedQty; if (qty < 0 || qty > item.requestedQty) throw new AppError(400, "INVALID_APPROVED_QTY", "ยอดอนุมัติต้องไม่เกินยอดที่ขอ"); return { ...item, approvedQty: qty, itemStatus: qty > 0 ? "APPROVED" : "REJECTED" }; });
     const request: StockRequest = { ...detail, requestStatus: "APPROVED", approvedBy: user.userId };
     await this.repository.upsert("Stock_Request_Items", "Request_Item_ID", items.map(requestItemRecord));
     await this.repository.upsert("Stock_Requests", "Request_ID", [requestRecord(request)]);
-    await this.record(user, "REQUEST_APPROVED", "REQUEST", requestId);
     return { ...request, items };
   }
 
@@ -177,8 +160,6 @@ export class InventoryService {
     await this.repository.upsert("Stock_Balances", "Balance_ID", balances.map(balanceRecord));
     await this.repository.upsert("Stock_Request_Items", "Request_Item_ID", updatedItems.map(requestItemRecord));
     await this.repository.upsert("Stock_Requests", "Request_ID", [requestRecord(request)]);
-    for (const movement of movements) await this.record(user, "STOCK_TRANSFERRED", "MOVEMENT", movement.movementId, { requestId });
-    if (status === "COMPLETED" && detail.requestStatus !== "COMPLETED") await this.record(user, "REQUEST_FULFILLED", "REQUEST", requestId);
     return { ...request, items: updatedItems };
   }
 
@@ -204,8 +185,6 @@ export class InventoryService {
     applyMovementToBalances(balances, movement);
     await this.repository.append("Stock_Movements", [movementRecord(movement)]);
     await this.repository.upsert("Stock_Balances", "Balance_ID", balances.map(balanceRecord));
-    const action = movement.movementType === "RECEIVE" ? "STOCK_RECEIVED" : movement.movementType === "TRANSFER" ? "STOCK_TRANSFERRED" : movement.movementType === "ADJUSTMENT" ? "STOCK_ADJUSTED" : undefined;
-    if (action) await this.record(user, action, "MOVEMENT", movement.movementId);
     return movement;
   }
 
@@ -221,22 +200,10 @@ export class InventoryService {
       for (const movement of movements) applyMovementToBalances(balances, movement);
       if (movements.length) { await this.repository.append("Stock_Movements", movements.map(movementRecord)); await this.repository.upsert("Stock_Balances", "Balance_ID", balances.map(balanceRecord)); }
     }
-    await this.record(user, input.status === "COMPLETED" ? "STOCK_COUNT_COMPLETED" : "STOCK_COUNT_STARTED", "STOCK_COUNT", countId);
     return { ...count, items };
   }
 
   async counts(user: SessionUser) { const [counts, items] = await Promise.all([this.repository.read("Stock_Counts", { fresh: true }), this.repository.read("Stock_Count_Items", { fresh: true })]); return counts.map(mapCount).filter((v) => v.branchId === user.branchId).map((v) => ({ ...v, items: items.map(mapCountItem).filter((i) => i.countId === v.countId) })); }
-
-  async reviewCount(user: SessionUser, countId: string) {
-    const value = (await this.counts(user)).find((count) => count.countId === countId);
-    if (!value) throw new AppError(404, "COUNT_NOT_FOUND", "ไม่พบการนับสต๊อก");
-    if (value.countStatus === "REVIEWED") return value;
-    if (value.countStatus !== "COMPLETED") throw new AppError(409, "COUNT_NOT_COMPLETED", "ตรวจผลได้เฉพาะงานนับที่เสร็จแล้ว");
-    const reviewed = { ...value, countStatus: "REVIEWED" };
-    await this.repository.upsert("Stock_Counts", "Count_ID", [countRecord(reviewed)]);
-    await this.record(user, "STOCK_COUNT_REVIEWED", "STOCK_COUNT", countId);
-    return reviewed;
-  }
 
   async rebuildBalances(user: SessionUser): Promise<StockBalance[]> {
     if (user.role !== "owner") throw new AppError(403, "FORBIDDEN", "เฉพาะ owner เท่านั้น");
@@ -245,9 +212,5 @@ export class InventoryService {
     for (const movement of movements) applyMovementToBalances(balances, movement);
     await this.repository.clearAndWrite("Stock_Balances", balances.map(balanceRecord));
     return balances;
-  }
-
-  private async record(user: SessionUser, action: ActivityAction, entityType: ActivityEntityType, entityId: string, metadata?: unknown, branchId = user.branchId): Promise<void> {
-    await this.activityService?.recordActivitySafely({ userId: user.userId, branchId, action, entityType, entityId, result: "SUCCESS", metadata });
   }
 }
