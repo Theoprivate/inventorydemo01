@@ -59,7 +59,7 @@ export function ItemConfigForm({ item }: { item?: Item }) {
   if (me.data && me.data.role !== "owner" && me.data.role !== "manager") return <EmptyState title="บัญชีนี้ไม่มีสิทธิ์แก้ไขข้อมูลไอเทม" action={<GameButtonLink href="/settings/items" variant="secondary">กลับรายการไอเทม</GameButtonLink>} />;
 
   return <>
-    <PageHeader eyebrow={item ? "Edit Item · Master Data" : "New Item · Master Data"} title={item ? "แก้ไขไอเทม" : "เพิ่มไอเทม"} description={item ? "แก้ข้อมูลกลางและรูปสินค้า แล้วบันทึกกลับไปยัง Items" : "สร้างข้อมูลกลางของสินค้าใหม่ใน Items"} actions={<GameButtonLink href="/settings/items" variant="secondary">← กลับรายการไอเทม</GameButtonLink>} />
+    <PageHeader eyebrow={item ? "Edit master product" : "New master product"} title={item ? "แก้ไขสินค้ากลาง" : "เพิ่มสินค้ากลาง"} description={item ? "แก้ข้อมูลที่ทุกสาขาใช้ร่วมกัน" : "สร้างสินค้ากลางก่อน แล้วค่อยเปิดใช้ในแต่ละสาขา"} actions={<GameButtonLink href="/settings/items" variant="secondary">← กลับสินค้ากลาง</GameButtonLink>} />
     <form onSubmit={form.handleSubmit(submit)} className="grid gap-7 lg:grid-cols-[280px_minmax(0,1fr)]">
       <aside className="h-fit">
         <p className="page-market-header__eyebrow">IMAGE PREVIEW</p>

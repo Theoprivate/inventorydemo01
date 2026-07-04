@@ -31,6 +31,32 @@ describe("GoogleSheetsInventoryRepository Items", () => {
       Is_Active: "TRUE",
     });
   });
+
+  it("caches repeated reads and requests only the columns declared by the schema", async () => {
+    const get = vi.fn().mockResolvedValue({ data: { values: [SHEET_HEADERS.Stock_Balances] } });
+    const sheets = { spreadsheets: { values: { get } } } as unknown as sheets_v4.Sheets;
+    const repository = new GoogleSheetsInventoryRepository(sheets, "sheet-id");
+
+    await repository.read("Stock_Balances");
+    await repository.read("Stock_Balances");
+
+    expect(get).toHaveBeenCalledTimes(1);
+    expect(get).toHaveBeenCalledWith({ spreadsheetId: "sheet-id", range: "Stock_Balances!A:F" });
+  });
+
+  it("coalesces concurrent reads for the same tab and invalidates the cached value after a write", async () => {
+    const get = vi.fn().mockResolvedValue({ data: { values: [SHEET_HEADERS.Locations] } });
+    const append = vi.fn().mockResolvedValue({});
+    const sheets = { spreadsheets: { values: { get, append } } } as unknown as sheets_v4.Sheets;
+    const repository = new GoogleSheetsInventoryRepository(sheets, "sheet-id");
+
+    await Promise.all([repository.read("Locations"), repository.read("Locations"), repository.read("Locations")]);
+    expect(get).toHaveBeenCalledTimes(1);
+
+    await repository.append("Locations", [{ Location_ID: "L1" }]);
+    await repository.read("Locations");
+    expect(get).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("GoogleSheetsInventoryRepository Phase 1 models", () => {

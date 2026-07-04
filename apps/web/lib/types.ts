@@ -1,5 +1,6 @@
 export type Role = "owner" | "manager" | "stock" | "staff";
 export interface SessionUser { userId: string; username: string; displayName: string; role: Role; branchId: string; branchName: string }
+export interface Branch { branchId: string; branchName: string; isActive: boolean; createdAt: string }
 export interface Category { categoryId: string; categoryName: string; sortOrder: number; isActive: boolean }
 export interface Item { itemId: string; itemName: string; categoryId: string; unit: string; imageUrl: string; description: string; isActive: boolean; createdAt: string }
 export interface StoreItem { storeItemId: string; branchId: string; itemId: string; minQty: number; targetQty: number; defaultLocationId: string; allowRequest: boolean; requireDailyCount: boolean; isActive: boolean }

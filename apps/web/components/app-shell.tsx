@@ -14,8 +14,8 @@ const menus: Array<{ href: string; label: string; icon: MarketIconName; roles: R
   { href: "/inventory/movements", label: "เคลื่อนไหว", icon: "arrows", roles: ["owner", "manager", "stock"] },
   { href: "/inventory/count", label: "บันทึกนับ", icon: "clipboard", roles: ["owner", "manager", "stock"] },
   { href: "/inventory/balances", label: "ยอดคงเหลือ", icon: "chart", roles: ["owner", "manager", "stock"] },
-  { href: "/settings/items", label: "ไอเทม", icon: "box", roles: ["owner", "manager"] },
-  { href: "/settings/store-items", label: "ไอเทมสำรอง", icon: "layers", roles: ["owner", "manager"] },
+  { href: "/settings/items", label: "สินค้ากลาง", icon: "box", roles: ["owner", "manager"] },
+  { href: "/settings/store-items", label: "สินค้าสาขา", icon: "layers", roles: ["owner", "manager"] },
   { href: "/settings/locations", label: "ตำแหน่ง", icon: "pin", roles: ["owner", "manager"] },
 ];
 

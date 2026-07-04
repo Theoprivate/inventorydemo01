@@ -6,23 +6,38 @@ import { AppError, sheetsWriteError } from "../errors.js";
 import type { InventoryRepository } from "./inventory-repository.js";
 
 const MASTER_TABS = new Set<SheetName>(["Branches", "Categories", "Items", "Store_Items", "Locations"]);
-const CACHE_MS = 45_000;
+const MASTER_CACHE_MS = 45_000;
+const LIVE_CACHE_MS = 5_000;
 
 export class GoogleSheetsInventoryRepository implements InventoryRepository {
   private cache = new Map<SheetName, { expires: number; records: SheetRecord[] }>();
+  private pendingReads = new Map<SheetName, Promise<SheetRecord[]>>();
+  private versions = new Map<SheetName, number>();
   constructor(private readonly sheets: sheets_v4.Sheets, private readonly spreadsheetId: string) {}
 
   async read(tab: SheetName, options: { fresh?: boolean } = {}): Promise<SheetRecord[]> {
     const cached = this.cache.get(tab);
     if (!options.fresh && cached && cached.expires > Date.now()) return structuredClone(cached.records);
-    const response = await this.sheets.spreadsheets.values.get({ spreadsheetId: this.spreadsheetId, range: `${tab}!A:Z` });
-    const rows = (response.data.values ?? []) as string[][];
-    const actualHeaders = (rows[0] ?? []).map(stringCell);
-    assertHeaders(tab, SHEET_HEADERS[tab], actualHeaders);
-    const mappedRecords = rowsToRecords(actualHeaders, rows.slice(1));
-    const records = tab === "Items" ? filterValidItemRecords(mappedRecords) : mappedRecords;
-    if (MASTER_TABS.has(tab)) this.cache.set(tab, { expires: Date.now() + CACHE_MS, records });
-    return structuredClone(records);
+    if (!options.fresh) {
+      const pending = this.pendingReads.get(tab);
+      if (pending) return structuredClone(await pending);
+    }
+
+    const version = this.versions.get(tab) ?? 0;
+    const load = this.loadTab(tab).then((records) => {
+      if ((this.versions.get(tab) ?? 0) === version) {
+        const ttl = MASTER_TABS.has(tab) ? MASTER_CACHE_MS : LIVE_CACHE_MS;
+        this.cache.set(tab, { expires: Date.now() + ttl, records });
+      }
+      return records;
+    });
+    if (!options.fresh) this.pendingReads.set(tab, load);
+
+    try {
+      return structuredClone(await load);
+    } finally {
+      if (this.pendingReads.get(tab) === load) this.pendingReads.delete(tab);
+    }
   }
 
   async append(tab: SheetName, records: SheetRecord[]): Promise<void> {
@@ -100,7 +115,17 @@ export class GoogleSheetsInventoryRepository implements InventoryRepository {
     this.invalidate(tab);
   }
 
-  invalidate(tab?: SheetName): void { if (tab) this.cache.delete(tab); else this.cache.clear(); }
+  invalidate(tab?: SheetName): void {
+    if (tab) {
+      this.cache.delete(tab);
+      this.pendingReads.delete(tab);
+      this.versions.set(tab, (this.versions.get(tab) ?? 0) + 1);
+      return;
+    }
+    this.cache.clear();
+    this.pendingReads.clear();
+    for (const name of Object.keys(SHEET_HEADERS) as SheetName[]) this.versions.set(name, (this.versions.get(name) ?? 0) + 1);
+  }
 
   async findUserById(userId: string): Promise<User | undefined> {
     return (await this.read("Users", { fresh: true })).map(mapUser).find((user) => user.userId === userId);
@@ -209,6 +234,19 @@ export class GoogleSheetsInventoryRepository implements InventoryRepository {
       throw sheetsWriteError(error);
     }
     this.invalidate("Users");
+  }
+
+  private async loadTab(tab: SheetName): Promise<SheetRecord[]> {
+    const expectedHeaders = SHEET_HEADERS[tab];
+    const response = await this.sheets.spreadsheets.values.get({
+      spreadsheetId: this.spreadsheetId,
+      range: `${tab}!A:${columnName(expectedHeaders.length)}`,
+    });
+    const rows = (response.data.values ?? []) as string[][];
+    const actualHeaders = (rows[0] ?? []).map(stringCell);
+    assertHeaders(tab, expectedHeaders, actualHeaders);
+    const mappedRecords = rowsToRecords(actualHeaders, rows.slice(1));
+    return tab === "Items" ? filterValidItemRecords(mappedRecords) : mappedRecords;
   }
 }
 

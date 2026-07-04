@@ -25,7 +25,7 @@ export class InventoryService {
   async items() { return (await this.repository.read("Items")).map(mapItem).filter((item) => item.itemId.trim() !== "" && item.itemName.trim() !== ""); }
   async locations(branchId?: string) { const values = (await this.repository.read("Locations")).map(mapLocation); return branchId ? values.filter((v) => v.branchId === branchId) : values; }
   async storeItems(branchId: string) { return (await this.repository.read("Store_Items")).map(mapStoreItem).filter((v) => v.branchId === branchId); }
-  async balances(branchId: string) { return (await this.repository.read("Stock_Balances", { fresh: true })).map(mapBalance).filter((v) => v.branchId === branchId); }
+  async balances(branchId: string) { return (await this.repository.read("Stock_Balances")).map(mapBalance).filter((v) => v.branchId === branchId); }
 
   async saveItem(input: Partial<Item>): Promise<Item> {
     const existing = input.itemId ? (await this.items()).find((value) => value.itemId === input.itemId) : undefined;
@@ -104,10 +104,14 @@ export class InventoryService {
   }
 
   async requests(user: SessionUser, statuses?: string[]): Promise<Array<StockRequest & { itemCount: number; requestedTotal: number; issuedTotal: number }>> {
-    let values = (await this.repository.read("Stock_Requests", { fresh: true })).map(mapRequest).filter((v) => v.branchId === user.branchId);
+    const [requestRows, requestItemRows] = await Promise.all([
+      this.repository.read("Stock_Requests"),
+      this.repository.read("Stock_Request_Items"),
+    ]);
+    let values = requestRows.map(mapRequest).filter((v) => v.branchId === user.branchId);
     if (user.role === "staff") values = values.filter((v) => v.requestedBy === user.userId);
     if (statuses?.length) values = values.filter((v) => statuses.includes(v.requestStatus));
-    const requestItems = (await this.repository.read("Stock_Request_Items", { fresh: true })).map(mapRequestItem);
+    const requestItems = requestItemRows.map(mapRequestItem);
     return values.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((request) => {
       const items = requestItems.filter((item) => item.requestId === request.requestId);
       return { ...request, itemCount: items.length, requestedTotal: items.reduce((sum, item) => sum + item.requestedQty, 0), issuedTotal: items.reduce((sum, item) => sum + item.issuedQty, 0) };
@@ -115,9 +119,9 @@ export class InventoryService {
   }
 
   async requestDetail(user: SessionUser, requestId: string): Promise<RequestDetail> {
-    const request = (await this.repository.read("Stock_Requests", { fresh: true })).map(mapRequest).find((v) => v.requestId === requestId);
+    const request = (await this.repository.read("Stock_Requests")).map(mapRequest).find((v) => v.requestId === requestId);
     if (!request || request.branchId !== user.branchId || (user.role === "staff" && request.requestedBy !== user.userId)) throw new AppError(404, "REQUEST_NOT_FOUND", "ไม่พบคำขอ");
-    const [rows, items, users] = await Promise.all([this.repository.read("Stock_Request_Items", { fresh: true }), this.items(), this.repository.read("Users")]);
+    const [rows, items, users] = await Promise.all([this.repository.read("Stock_Request_Items"), this.items(), this.repository.read("Users")]);
     return { ...request, items: rows.map(mapRequestItem).filter((v) => v.requestId === requestId).map((v) => ({ ...v, item: items.find((i) => i.itemId === v.itemId) })), requester: users.map(mapUser).filter((v) => v.userId === request.requestedBy).map((v) => ({ userId: v.userId, displayName: v.displayName, username: v.username }))[0] };
   }
 
@@ -188,7 +192,7 @@ export class InventoryService {
     return movement;
   }
 
-  async movements(user: SessionUser) { return (await this.repository.read("Stock_Movements", { fresh: true })).map(mapMovement).filter((v) => v.branchId === user.branchId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)); }
+  async movements(user: SessionUser) { return (await this.repository.read("Stock_Movements")).map(mapMovement).filter((v) => v.branchId === user.branchId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)); }
 
   async createCount(user: SessionUser, input: { locationId: string; countRound: string; status: "DRAFT" | "COMPLETED"; note?: string; items: Array<{ itemId: string; countedQty: number; unit: string; note?: string }> }) {
     const balances = await this.balances(user.branchId); const countId = createId("CNT");
@@ -203,7 +207,7 @@ export class InventoryService {
     return { ...count, items };
   }
 
-  async counts(user: SessionUser) { const [counts, items] = await Promise.all([this.repository.read("Stock_Counts", { fresh: true }), this.repository.read("Stock_Count_Items", { fresh: true })]); return counts.map(mapCount).filter((v) => v.branchId === user.branchId).map((v) => ({ ...v, items: items.map(mapCountItem).filter((i) => i.countId === v.countId) })); }
+  async counts(user: SessionUser) { const [counts, items] = await Promise.all([this.repository.read("Stock_Counts"), this.repository.read("Stock_Count_Items")]); return counts.map(mapCount).filter((v) => v.branchId === user.branchId).map((v) => ({ ...v, items: items.map(mapCountItem).filter((i) => i.countId === v.countId) })); }
 
   async rebuildBalances(user: SessionUser): Promise<StockBalance[]> {
     if (user.role !== "owner") throw new AppError(403, "FORBIDDEN", "เฉพาะ owner เท่านั้น");
