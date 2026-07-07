@@ -38,6 +38,7 @@
 - Balance correctness depends on movement writes and projection updates staying synchronized; rebuild is restricted to owner.
 - External Sheets verification requires configured credentials and access to the live spreadsheet; local unit tests do not prove live schema/data correctness.
 - Uploaded item images are stored on the web process filesystem under `apps/web/public/images/items/`; persistence therefore depends on the deployment filesystem. Clearing or replacing an image does not delete the old file in this phase.
+- Codespaces public web access currently uses port `3001`; port `3000` returned a tunnel-level `502` even while local Next.js responded. Start the web dev server with `-H 0.0.0.0 -p 3001` and set `NEXT_PUBLIC_API_BASE_URL` to the public API URL on port `4000` when exposing the app externally.
 
 ## Current priorities
 

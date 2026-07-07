@@ -916,6 +916,341 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 .market-backdrop { animation: market-fade 140ms ease-out both; }
 .market-drawer { animation: market-drawer-up 180ms ease-out both; }
 
+.document-system {
+  font-family: var(--font-family-sans);
+  overflow-x: hidden;
+}
+
+.document-toolbar {
+  font-family: var(--font-family-sans);
+}
+
+.document-toolbar__button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #8f4a3a;
+  border-radius: 6px;
+  background: #fffaf4;
+  padding: .55rem .9rem;
+  color: #5b251c;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(75, 42, 31, .12);
+}
+
+.document-toolbar__button--primary {
+  background: #7f2d25;
+  color: #fff9f2;
+}
+
+.document-sheet {
+  width: min(100%, 210mm);
+  min-height: 297mm;
+  box-shadow: 0 18px 50px rgba(54, 38, 28, .18);
+}
+
+.document-paper {
+  min-height: 297mm;
+  padding: 15mm 13mm;
+  background: #fff;
+  color: #32231d;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.document-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 2px solid #8a2f28;
+  padding-bottom: 14px;
+}
+
+.document-brand {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.document-brand__mark {
+  display: grid;
+  height: 42px;
+  width: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border: 2px solid #7f2d25;
+  border-radius: 50%;
+  color: #7f2d25;
+  font-weight: 900;
+}
+
+.document-brand__name {
+  margin: 0;
+  color: #4a241e;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.document-brand__sub {
+  margin: 2px 0 0;
+  color: #806158;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.document-title-block {
+  text-align: right;
+}
+
+.document-title-block h1 {
+  margin: 0;
+  color: #7f2d25;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.document-title-block p {
+  margin: 4px 0 0;
+  color: #6a4b42;
+  font-weight: 700;
+}
+
+.document-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 12px;
+  margin: 18px 0;
+  border: 1px solid #ead6c7;
+  background: #fff9f2;
+  padding: 10px;
+}
+
+.document-meta__item dt {
+  color: #7d5f55;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.document-meta__item dd {
+  margin: 2px 0 0;
+  color: #321f1a;
+  font-weight: 800;
+}
+
+.document-table-wrap {
+  width: 100%;
+  overflow-x: visible;
+}
+
+.document-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 11px;
+}
+
+.document-table thead {
+  display: table-header-group;
+}
+
+.document-table th {
+  border: 1px solid #d9bdae;
+  background: #f4ded2;
+  color: #63251f;
+  padding: 7px 6px;
+  text-align: left;
+  font-weight: 800;
+}
+
+.document-table td {
+  border: 1px solid #ead6c7;
+  padding: 7px 6px;
+  vertical-align: top;
+  word-break: break-word;
+}
+
+.document-table tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.document-table__index {
+  width: 36px;
+}
+
+.document-table__name {
+  text-align: left;
+  font-weight: 700;
+}
+
+.document-table__number {
+  text-align: right;
+}
+
+.document-table__center {
+  text-align: center;
+}
+
+.document-empty-items,
+.document-state {
+  border: 1px solid #ead6c7;
+  background: #fff9f2;
+  padding: 20px;
+  text-align: center;
+  font-weight: 800;
+}
+
+.document-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px;
+  gap: 12px;
+  margin-top: 14px;
+  border: 1px solid #ead6c7;
+  padding: 10px;
+}
+
+.document-footer strong {
+  color: #63251f;
+}
+
+.document-footer p {
+  margin: 4px 0 0;
+}
+
+.document-signatures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 34px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.document-signature {
+  min-height: 82px;
+  text-align: center;
+}
+
+.document-signature__line {
+  margin: 38px auto 8px;
+  border-top: 1px solid #5d4038;
+}
+
+.document-signature p,
+.document-signature span {
+  margin: 0;
+  color: #5d4038;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .document-paper {
+    padding: 18px 14px;
+  }
+
+  .document-header,
+  .document-footer,
+  .document-signatures {
+    grid-template-columns: 1fr;
+  }
+
+  .document-header {
+    display: grid;
+  }
+
+  .document-title-block {
+    text-align: left;
+  }
+
+  .document-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+@page {
+  size: A4 portrait;
+  margin: 12mm;
+}
+
+@media print {
+  html,
+  body {
+    width: 210mm;
+    background: #fff !important;
+    overflow-x: hidden !important;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body:has(.document-system) .market-sidebar,
+  body:has(.document-system) .market-profile,
+  body:has(.document-system) .market-mobile-nav,
+  body:has(.document-system) .document-toolbar,
+  body:has(.document-system) button,
+  body:has(.document-system) [role="button"] {
+    display: none !important;
+  }
+
+  body:has(.document-system) .app-market,
+  body:has(.document-system) .market-main-frame,
+  body:has(.document-system) .market-workspace,
+  body:has(.document-system) .document-system {
+    display: block !important;
+    min-height: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    background-image: none !important;
+    overflow: visible !important;
+  }
+
+  body:has(.document-system) .document-sheet {
+    width: auto !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
+  body:has(.document-system) .document-paper {
+    min-height: auto !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  body:has(.document-system) .document-table-wrap,
+  body:has(.document-system) .document-table {
+    overflow: visible !important;
+  }
+
+  body:has(.document-system) .document-table {
+    table-layout: fixed;
+  }
+
+  body:has(.document-system) .document-table thead {
+    display: table-header-group;
+  }
+
+  body:has(.document-system) .document-table tr,
+  body:has(.document-system) .document-signatures,
+  body:has(.document-system) .document-footer {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
 @keyframes market-enter {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
