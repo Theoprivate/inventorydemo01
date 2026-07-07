@@ -954,7 +954,7 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 
 .document-paper {
   min-height: 297mm;
-  padding: 15mm 13mm;
+  padding: 12mm;
   background: #fff;
   color: #32231d;
   font-size: 12px;
@@ -962,31 +962,33 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 }
 
 .document-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(52mm, 35%);
+  min-height: 34mm;
+  max-height: 42mm;
+  align-items: stretch;
+  gap: 10mm;
   border-bottom: 2px solid #8a2f28;
-  padding-bottom: 14px;
+  padding-bottom: 10px;
+  overflow: hidden;
 }
 
 .document-brand {
   display: flex;
   min-width: 0;
+  height: 100%;
   align-items: center;
   gap: 10px;
 }
 
-.document-brand__mark {
-  display: grid;
-  height: 42px;
-  width: 42px;
-  flex: 0 0 42px;
-  place-items: center;
-  border: 2px solid #7f2d25;
-  border-radius: 50%;
-  color: #7f2d25;
-  font-weight: 900;
+.document-brand__logo {
+  display: block;
+  width: 32mm;
+  height: 24mm;
+  flex: 0 0 32mm;
+  max-width: 32mm;
+  max-height: 24mm;
+  object-fit: contain;
 }
 
 .document-brand__name {
@@ -1005,28 +1007,37 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 }
 
 .document-title-block {
+  display: flex;
+  min-width: 52mm;
+  flex-direction: column;
+  justify-content: center;
   text-align: right;
 }
 
 .document-title-block h1 {
   margin: 0;
   color: #7f2d25;
-  font-size: 24px;
+  font-size: 27px;
   font-weight: 900;
   letter-spacing: 0;
+  line-height: 1.15;
+  overflow-wrap: normal;
 }
 
 .document-title-block p {
-  margin: 4px 0 0;
+  margin: 8px 0 0;
   color: #6a4b42;
+  font-size: 13px;
   font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .document-meta {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px 12px;
-  margin: 18px 0;
+  margin: 12px 0 14px;
   border: 1px solid #ead6c7;
   background: #fff9f2;
   padding: 10px;
@@ -1046,14 +1057,44 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 
 .document-table-wrap {
   width: 100%;
-  overflow-x: visible;
+  max-width: 100%;
+  overflow: visible;
 }
 
 .document-table {
   width: 100%;
+  max-width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-  font-size: 11px;
+  font-size: 11.5px;
+}
+
+.document-table__col-index {
+  width: 5%;
+}
+
+.document-table__col-name {
+  width: 28%;
+}
+
+.document-table__col-qty {
+  width: 13%;
+}
+
+.document-table__col-approved {
+  width: 14%;
+}
+
+.document-table__col-issued {
+  width: 13%;
+}
+
+.document-table__col-unit {
+  width: 8%;
+}
+
+.document-table__col-note {
+  width: 19%;
 }
 
 .document-table thead {
@@ -1064,16 +1105,20 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
   border: 1px solid #d9bdae;
   background: #f4ded2;
   color: #63251f;
-  padding: 7px 6px;
-  text-align: left;
+  padding: 7px 5px;
+  text-align: center;
   font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .document-table td {
   border: 1px solid #ead6c7;
-  padding: 7px 6px;
+  padding: 7px 5px;
   vertical-align: top;
-  word-break: break-word;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .document-table tr {
@@ -1082,16 +1127,17 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 }
 
 .document-table__index {
-  width: 36px;
+  width: 5%;
 }
 
 .document-table__name {
   text-align: left;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .document-table__number {
   text-align: right;
+  font-weight: 600;
 }
 
 .document-table__center {
@@ -1164,9 +1210,22 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 
   .document-header {
     display: grid;
+    grid-template-columns: 1fr;
+    min-height: auto;
+    max-height: none;
+    gap: 12px;
+  }
+
+  .document-brand {
+    height: auto;
+  }
+
+  .document-brand__logo {
+    max-height: 180px;
   }
 
   .document-title-block {
+    min-width: 0;
     text-align: left;
   }
 
