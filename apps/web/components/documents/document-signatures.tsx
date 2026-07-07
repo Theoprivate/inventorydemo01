@@ -1,12 +1,20 @@
-const signatureSlots = ["ผู้ขอ", "ผู้ตรวจสอบ", "ผู้อนุมัติ"];
+interface SignatureSlot {
+  label: string;
+  name?: string;
+}
 
-export function DocumentSignatures() {
+function signatureName(name: string | undefined) {
+  return name?.trim() || "------------";
+}
+
+export function DocumentSignatures({ slots }: { slots: SignatureSlot[] }) {
   return (
     <section className="document-signatures" aria-label="ลายเซ็น">
-      {signatureSlots.map((label) => (
-        <div className="document-signature" key={label}>
+      {slots.map((slot) => (
+        <div className="document-signature" key={slot.label}>
           <div className="document-signature__line" />
-          <p>{label}</p>
+          <p>({signatureName(slot.name)})</p>
+          <strong>{slot.label}</strong>
           <span>วันที่ ____ / ____ / ______</span>
         </div>
       ))}

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { DocumentFooter } from "@/components/documents/document-footer";
+import { displayRequestNumber, displayUserName, DocumentStatusBadge, formatThaiDate } from "@/components/documents/document-formatters";
 import { DocumentHeader } from "@/components/documents/document-header";
 import { DocumentMeta } from "@/components/documents/document-meta";
 import { DocumentPaper, DocumentPreviewShell } from "@/components/documents/document-page";
@@ -14,11 +15,7 @@ import { ApiError, get } from "@/lib/api";
 import type { SessionUser, StockRequest } from "@/lib/types";
 
 function text(value: string | undefined | null) {
-  return value?.trim() || "-";
-}
-
-function requesterName(request: StockRequest) {
-  return text(request.requester?.displayName || request.requester?.username || request.requestedBy);
+  return value?.trim() || "ไม่พบข้อมูล";
 }
 
 export default function InternalOrderDocumentPage() {
@@ -50,24 +47,36 @@ export default function InternalOrderDocumentPage() {
 
   const value = request.data;
   const branch = me.data?.branchId === value.branchId ? me.data.branchName : value.branchId;
+  const documentNumber = displayRequestNumber(value);
+  const requesterName = displayUserName(value.requester, "ไม่พบชื่อผู้ขอเบิก");
+  const approverName = displayUserName(value.approver, value.approvedBy?.trim() || "รอระบุผู้อนุมัติ");
+  const preparerName = me.data?.displayName?.trim() || me.data?.username?.trim() || "";
+  const systemRequestId = value.requestId && value.requestId !== documentNumber ? value.requestId : undefined;
+  const approverValue = value.approvedBy
+    ? approverName
+    : <span className="document-meta__muted">รอระบุผู้อนุมัติ</span>;
 
   return (
     <DocumentPreviewShell toolbar={<DocumentToolbar backHref={backHref} />}>
       <DocumentPaper>
-        <DocumentHeader title="ใบสั่งของภายใน" requestId={value.requestId} />
+        <DocumentHeader title="ใบสั่งของภายใน" documentNumber={documentNumber} />
         <DocumentMeta
           items={[
-            { label: "เลขคำขอ", value: text(value.requestId) },
-            { label: "วันที่", value: text(value.requestDate || value.createdAt) },
-            { label: "สาขา", value: text(branch) },
-            { label: "ผู้ขอ", value: requesterName(value) },
-            { label: "สถานะ", value: text(value.requestStatus) },
-            { label: "ผู้อนุมัติ", value: text(value.approvedBy) },
+            { label: "เลขที่เอกสาร", value: documentNumber },
+            { label: "วันที่จัดทำ", value: formatThaiDate(value.requestDate || value.createdAt) },
+            { label: "สถานะ", value: <DocumentStatusBadge status={value.requestStatus} /> },
+            { label: "ผู้ขอเบิก", value: requesterName },
+            { label: "สาขาที่ขอเบิก", value: text(branch) },
+            { label: "ผู้อนุมัติ", value: approverValue },
           ]}
         />
         <DocumentTable items={value.items ?? []} />
-        <DocumentFooter note={value.note} approvedBy={value.approvedBy} />
-        <DocumentSignatures />
+        <DocumentFooter note={value.note} systemRequestId={systemRequestId} />
+        <DocumentSignatures slots={[
+          { label: "ผู้ขอเบิก", name: requesterName },
+          { label: "ผู้ตรวจสอบ", name: preparerName },
+          { label: "ผู้อนุมัติ", name: value.approvedBy ? approverName : "" },
+        ]} />
       </DocumentPaper>
     </DocumentPreviewShell>
   );

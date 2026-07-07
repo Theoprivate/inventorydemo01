@@ -1,14 +1,15 @@
-export function DocumentFooter({ note, approvedBy }: { note: string; approvedBy: string }) {
+export function DocumentFooter({ note, systemRequestId }: { note: string; systemRequestId?: string }) {
   return (
-    <footer className="document-footer">
-      <div>
+    <footer>
+      <div className="document-footer">
         <strong>หมายเหตุ</strong>
-        <p>{note || "-"}</p>
+        <p>{note?.trim() || "ไม่มีหมายเหตุ"}</p>
       </div>
-      <div>
-        <strong>ผู้อนุมัติ</strong>
-        <p>{approvedBy || "-"}</p>
-      </div>
+      {systemRequestId && (
+        <p className="document-system-reference">
+          รหัสอ้างอิงระบบ: {systemRequestId}
+        </p>
+      )}
     </footer>
   );
 }
