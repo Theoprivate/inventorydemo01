@@ -1,6 +1,6 @@
 # บันทึกปัญหาและการแก้ไข
 
-อัปเดตล่าสุด: 2026-07-03
+อัปเดตล่าสุด: 2026-07-07
 
 ## 1. ไฟล์ `next-env.d.ts` เปลี่ยนเอง
 
@@ -365,6 +365,40 @@
 - ผลตรวจ: Web typecheck ผ่านและ Web tests 23 tests ผ่าน
 - สถานะ: แก้แล้ว
 
+## 19. Codespaces forwarded URL ตอบ HTTP 502
+
+- อาการ: เปิด URL ของ Codespaces ที่ forward พอร์ต 3000 แล้ว browser แสดง
+  `HTTP ERROR 502` แม้ผู้ใช้ login GitHub อยู่แล้ว
+- หลักฐานฝั่ง application:
+  - Next.js ที่ `127.0.0.1:3000/login` ตอบ HTTP 200
+  - Fastify ที่ `127.0.0.1:4000/api/v1/auth/me` ตอบ HTTP 401 พร้อม
+    `UNAUTHORIZED` ซึ่งเป็นผลที่ถูกต้องเมื่อยังไม่มี session
+  - เมื่อเริ่มรวมด้วย `pnpm dev`, API เคยล้มด้วย `listen EPERM` ขณะสร้าง
+    `tsx` IPC socket ใน sandbox; หลังได้สิทธิ์รันแล้ว Turbo ล้มอีกครั้งเพราะ
+    มี Next.js process เดิมใช้พอร์ต 3000 อยู่ (`EADDRINUSE`)
+- หลักฐานฝั่ง tunnel:
+  - Codespace `improved-lamp-4jwgx9pjp69fpx5` มีสถานะ `Available` และเป็นของ
+    บัญชี `Themetheo`
+  - พอร์ต 3000 และ 4000 ถูก forward แบบ Private
+  - การทดสอบ URL ภายนอกขณะเป็น Private ตอบ HTTP 401 จาก tunnel ก่อนถึง
+    Next.js จึงแยกได้ว่าปัญหาอยู่ที่ Codespaces private tunnel/authentication ไม่ใช่
+    application route
+- การแก้ไข:
+  - รัน Web ที่ host `0.0.0.0` พอร์ต 3000 และรัน API แยกที่พอร์ต 4000
+  - เปลี่ยนเฉพาะ forwarded port 3000 จาก Private เป็น Public
+  - คงพอร์ต API 4000 เป็น Private; browser เรียก API ผ่าน Next.js same-origin
+    rewrite เท่านั้น
+- ผลตรวจหลังแก้: forwarded URL `/login` ตอบ HTTP 200 จากภายนอก
+- ข้อควรระวัง: เมื่อพอร์ต 3000 เป็น Public บุคคลภายนอกเข้าถึงหน้า Login ได้
+  แม้ application ยังบังคับ authentication; ควรเปลี่ยนกลับเป็น Private เมื่อทดสอบเสร็จ
+- การกู้คืนหากเกิดซ้ำ:
+  1. ทดสอบ `127.0.0.1:3000/login` และ `127.0.0.1:4000/api/v1/auth/me` แยกกัน
+  2. ตรวจ process เดิมก่อน start เพื่อหลีกเลี่ยง `EADDRINUSE`
+  3. ตรวจ `gh codespace ports` ว่าพอร์ตถูก forward และ visibility ตรงตามที่ต้องการ
+  4. ทดสอบ forwarded URL จากภายนอก; HTTP 401/502 จาก tunnel กับ HTTP response
+     จาก Next.js เป็นคนละชั้นของปัญหา
+- สถานะ: แก้แล้วสำหรับ Codespace ปัจจุบัน โดยไม่มีการแก้ source code
+
 ## สถานะการตรวจสอบล่าสุด
 
 - Service Account อ่าน Spreadsheet ได้
@@ -377,4 +411,3 @@
 - Next.js production build ผ่าน
 - `key.json` และ `apps/api/.env` ไม่ถูก track ใน Git
 - local branch มี commits ที่ยังไม่ได้ push ขึ้น `origin/main`
-

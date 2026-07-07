@@ -2,7 +2,18 @@
 
 :root {
   color-scheme: light;
-  font-family: Inter, "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  --font-family-sans: "IBM Plex Sans Thai", "Noto Sans Thai", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-size-xs: .75rem;
+  --font-size-sm: .875rem;
+  --font-size-base: .9375rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-page-title: clamp(1.875rem, 2.2vw, 2.25rem);
+  --line-height-thai: 1.55;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  font-family: var(--font-family-sans);
   --color-game-ink: #3d281b;
   --color-game-brown: #4a2b17;
   --color-game-brown-soft: #5b361f;
@@ -35,6 +46,8 @@ html,
 body {
   margin: 0;
   min-height: 100%;
+  font-family: var(--font-family-sans);
+  line-height: var(--line-height-thai);
 }
 
 button,
@@ -73,6 +86,8 @@ textarea {
   outline: none;
   border-radius: 5px;
   color: var(--color-game-ink);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
 }
 .field:focus { border-color: var(--color-game-border-strong); box-shadow: var(--shadow-game-sm); }
 .field:focus-visible { outline: 3px solid rgba(184, 93, 46, .28); outline-offset: 2px; }
@@ -100,7 +115,9 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
   justify-content: center;
   border: 2px solid var(--color-game-brown);
   border-radius: 5px;
-  font-weight: 900;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
   line-height: 1.2;
   box-shadow: 0 3px 0 #301b0f;
   transition: transform 100ms steps(2, end), box-shadow 100ms steps(2, end), background-color 100ms linear;
@@ -109,9 +126,9 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 .game-button:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
 .game-button:disabled { cursor: not-allowed; opacity: .5; }
 .game-button:focus-visible { outline: 3px solid rgba(184, 93, 46, .35); outline-offset: 2px; }
-.game-button--sm { min-height: 36px; padding: .4rem .7rem; font-size: .75rem; }
-.game-button--md { min-height: 44px; padding: .6rem 1rem; font-size: .875rem; }
-.game-button--lg { min-height: 52px; padding: .75rem 1.25rem; font-size: 1rem; }
+.game-button--sm { min-height: 36px; padding: .4rem .7rem; }
+.game-button--md { min-height: 44px; padding: .6rem 1rem; }
+.game-button--lg { min-height: 52px; padding: .75rem 1.25rem; }
 .game-button--primary { background: var(--color-game-brown-soft); color: var(--color-game-cream-active); }
 .game-button--primary:hover:not(:disabled) { background: #754327; }
 .game-button--secondary { border-color: var(--color-game-border-strong); background: var(--color-game-cream); color: var(--color-game-brown); box-shadow: var(--shadow-game-sm); }
@@ -127,10 +144,11 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
   border: 1px solid var(--color-game-border);
   border-radius: 4px;
   padding: .25rem .55rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: .625rem;
-  font-weight: 900;
-  letter-spacing: .05em;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: .02em;
+  line-height: 1.2;
   box-shadow: 1px 2px 0 #d0aa74;
 }
 .game-status-badge--neutral { background: var(--color-game-cream-active); color: var(--color-game-brown); }
@@ -149,9 +167,9 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 }
 
 .game-form-field { display: grid; gap: .4rem; min-width: 0; color: var(--color-game-ink); }
-.game-form-field__label { font-size: .75rem; font-weight: 900; }
+.game-form-field__label { font-size: .8125rem; font-weight: var(--font-weight-semibold); line-height: 1.5; }
 .game-form-field__required { color: var(--color-game-caramel); }
-.game-form-field__message { font-size: .7rem; font-weight: 600; color: var(--color-game-muted); }
+.game-form-field__message { font-size: var(--font-size-xs); font-weight: var(--font-weight-medium); line-height: 1.5; color: var(--color-game-muted); }
 .game-form-field__message--error { color: var(--color-game-danger); }
 .game-form-field > :is(input, select, textarea) {
   width: 100%;
@@ -161,6 +179,8 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
   background: var(--color-game-cream);
   padding: .65rem .75rem;
   color: var(--color-game-ink);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
   outline: none;
 }
 .game-form-field > :is(input, select, textarea):focus { border-color: var(--color-game-border-strong); box-shadow: var(--shadow-game-sm); }
@@ -200,9 +220,28 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 .game-action-bar--sticky { position: sticky; bottom: 1rem; z-index: 20; }
 
 .page-market-header { margin-bottom: 1.5rem; border-bottom: 2px solid var(--color-game-border-strong); padding-bottom: 1rem; }
-.page-market-header__eyebrow { margin-bottom: .35rem; color: var(--color-game-caramel); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .625rem; font-weight: 900; letter-spacing: .15em; text-transform: uppercase; }
-.page-market-header__title { color: var(--color-game-brown); font-size: clamp(1.75rem, 3vw, 2.25rem); font-weight: 900; line-height: 1.1; letter-spacing: -.025em; }
-.page-market-header__description { max-width: 42rem; margin-top: .45rem; color: var(--color-game-muted); font-size: .875rem; font-weight: 600; }
+.page-market-header__eyebrow { margin-bottom: .35rem; color: var(--color-game-caramel); font-size: .6875rem; font-weight: var(--font-weight-bold); letter-spacing: .14em; line-height: 1.5; text-transform: uppercase; }
+.page-market-header__title { color: var(--color-game-brown); font-size: var(--font-size-page-title); font-weight: var(--font-weight-bold); line-height: 1.25; letter-spacing: -.02em; }
+.page-market-header__description { max-width: 42rem; margin-top: .45rem; color: #65442f; font-size: var(--font-size-base); font-weight: 400; line-height: 1.6; }
+
+.type-section-title { font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); line-height: 1.4; }
+.items-shared-note { color: var(--color-game-ink); font-size: var(--font-size-base); font-weight: 400; line-height: 1.6; }
+.items-save-message { color: var(--color-game-ink); font-size: 1rem; font-weight: 400; line-height: 1.6; }
+.item-card__id { font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: .02em; }
+.item-card__name { margin-top: .5rem; overflow-wrap: anywhere; color: var(--color-game-brown); font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); line-height: 1.45; }
+.item-card__metadata { margin-top: .25rem; color: #65442f; font-size: var(--font-size-sm); font-weight: 400; line-height: 1.55; }
+.item-card__status { margin-top: .625rem; }
+.items-edit-button { width: 100%; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); text-align: center; }
+.item-form-guidance { font-size: var(--font-size-sm); line-height: var(--line-height-thai); }
+.item-form-guidance__title,
+.item-upload__prompt,
+.item-upload__status,
+.item-form-active { font-weight: var(--font-weight-semibold); }
+.item-upload__prompt,
+.item-upload__status,
+.item-form-active { font-size: var(--font-size-sm); line-height: var(--line-height-thai); }
+.item-upload__filename,
+.item-upload__metadata { font-size: var(--font-size-xs); line-height: var(--line-height-thai); }
 
 .game-error-box { border: 1px solid #b86b4e; border-radius: 7px; background: #fff0df; padding: 1rem; color: #67301f; box-shadow: 3px 4px 0 #d49a72; }
 .game-error-box__eyebrow { color: var(--color-game-danger); font-family: ui-monospace, monospace; font-size: .625rem; font-weight: 900; letter-spacing: .16em; }
@@ -296,7 +335,7 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 .login-card__heading h1 {
   margin: 0;
   color: #4a2713;
-  font-family: "Noto Sans Thai", "IBM Plex Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  font-family: var(--font-family-sans);
   font-size: 2.5rem;
   font-weight: 800;
   line-height: 1.12;
@@ -306,7 +345,7 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 .login-card__heading p {
   margin: 0;
   color: #60412d;
-  font-family: "Noto Sans Thai", "IBM Plex Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  font-family: var(--font-family-sans);
   font-size: 1.0625rem;
   font-weight: 600;
   line-height: 1.45;
@@ -319,7 +358,7 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 
 .login-form-field .game-form-field__label {
   color: #4a2713;
-  font-family: "Noto Sans Thai", "IBM Plex Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  font-family: var(--font-family-sans);
   font-size: 1rem;
   font-weight: 700;
 }
@@ -797,8 +836,9 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
   background: #fff7e6;
   padding: .5rem .8rem;
   color: #4a2a16;
-  font-size: .8rem;
-  font-weight: 900;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.2;
   box-shadow: 3px 3px 0 #9b6837;
   transition: background-color 100ms ease, transform 100ms ease, box-shadow 100ms ease;
 }
@@ -807,6 +847,8 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 .market-logout:focus-visible { outline: 3px solid rgba(168, 95, 54, .35); outline-offset: 2px; }
 
 .market-workspace { animation: market-enter 220ms ease-out both; }
+.market-nav { font-family: var(--font-family-sans); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); line-height: 1.5; }
+.market-mobile-nav__label { font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); line-height: 1.5; }
 .market-awning { background: repeating-linear-gradient(90deg, #a96339 0 34px, #f6dbad 34px 68px); }
 .market-workspace a,
 .market-workspace button { -webkit-tap-highlight-color: transparent; }

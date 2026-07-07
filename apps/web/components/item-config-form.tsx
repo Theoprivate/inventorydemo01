@@ -158,8 +158,8 @@ export function ItemConfigForm({ item }: { item?: Item }) {
       <aside className="h-fit">
         <p className="page-market-header__eyebrow">IMAGE PREVIEW</p>
         <GamePanel className="p-4"><ItemImage src={previewUrl} itemName={previewName} className="w-full" /></GamePanel>
-        <GamePanel className="mt-5 bg-[var(--color-game-cream-active)] p-4 text-xs leading-relaxed">
-          <p className="font-black">คำแนะนำสำหรับรูปสินค้า</p>
+        <GamePanel className="item-form-guidance mt-5 bg-[var(--color-game-cream-active)] p-4">
+          <p className="item-form-guidance__title">คำแนะนำสำหรับรูปสินค้า</p>
           <ul className="mt-2 list-disc space-y-1 pl-4">
             <li>รูปแนะนำ 800 × 600 px</li>
             <li>สัดส่วน 4:3</li>
@@ -169,7 +169,7 @@ export function ItemConfigForm({ item }: { item?: Item }) {
         </GamePanel>
       </aside>
       <GamePanel className="p-5 sm:p-6">
-        {item && <FormField label="Item ID"><input className="font-mono" value={item.itemId} readOnly aria-readonly="true" /></FormField>}
+        {item && <FormField label="Item ID"><input value={item.itemId} readOnly aria-readonly="true" /></FormField>}
         <div className={item ? "mt-5" : ""}><FormField label="ชื่อสินค้า" error={form.formState.errors.itemName?.message}><input autoFocus {...form.register("itemName")} /></FormField></div>
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <FormField label="หมวดหมู่" error={form.formState.errors.categoryId?.message}><select {...form.register("categoryId")}><option value="">เลือกหมวดหมู่</option>{categories.data?.filter((value) => value.categoryId && value.categoryName).map((value, index) => <option key={`category-${value.categoryId}-${index}`} value={value.categoryId}>{value.categoryName}</option>)}</select></FormField>
@@ -200,16 +200,16 @@ export function ItemConfigForm({ item }: { item?: Item }) {
                   : <ItemImage src={previewUrl} itemName={previewName} className="h-full w-full" />}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-black">ลากรูปมาวางที่นี่ หรือเลือกไฟล์จากเครื่อง</p>
-                {selectedFile && <p className="mt-2 break-all text-xs" data-testid="item-image-file-meta">{selectedFile.name}</p>}
-                {compression && <div className="mt-2 space-y-1 text-xs" data-testid="item-image-compression-meta">
+                <p className="item-upload__prompt">ลากรูปมาวางที่นี่ หรือเลือกไฟล์จากเครื่อง</p>
+                {selectedFile && <p className="item-upload__filename mt-2 break-all" data-testid="item-image-file-meta">{selectedFile.name}</p>}
+                {compression && <div className="item-upload__metadata mt-2 space-y-1" data-testid="item-image-compression-meta">
                   <p>ไฟล์เดิม: {formatImageFileSize(compression.originalSize)}</p>
                   <p>หลังบีบอัด: {formatImageFileSize(compression.compressedSize)}</p>
                   <p>ขนาดภาพ: {compression.width} × {compression.height} px</p>
                 </div>}
-                {isProcessing && <p className="mt-2 text-sm font-black text-[var(--color-game-orange)]" role="status">กำลังปรับขนาดรูป...</p>}
-                {isUploading && <p className="mt-2 text-sm font-black text-[var(--color-game-orange)]" role="status">กำลังอัปโหลด...</p>}
-                {uploadError && <p className="mt-2 text-sm font-black text-red-700" role="alert">{uploadError}</p>}
+                {isProcessing && <p className="item-upload__status mt-2 text-[var(--color-game-orange)]" role="status">กำลังปรับขนาดรูป...</p>}
+                {isUploading && <p className="item-upload__status mt-2 text-[var(--color-game-orange)]" role="status">กำลังอัปโหลด...</p>}
+                {uploadError && <p className="item-upload__status mt-2 text-red-700" role="alert">{uploadError}</p>}
                 <div className="mt-3 flex flex-wrap gap-2">
                   <GameButton type="button" variant="secondary" size="sm" disabled={isProcessing || isUploading} onClick={() => fileInputRef.current?.click()}>
                     {previewUrl || localPreviewUrl ? "เปลี่ยนรูป" : "เลือกรูปจากเครื่อง"}
@@ -224,7 +224,7 @@ export function ItemConfigForm({ item }: { item?: Item }) {
           <input className="field min-w-0 w-full" placeholder="/images/items/red-pork.webp หรือ https://..." {...form.register("imageUrl")} />
         </FormField></div>
         <div className="mt-5"><FormField label="คำอธิบาย"><textarea className="min-h-28 resize-y" {...form.register("description")} /></FormField></div>
-        <label className="mt-5 flex min-h-12 items-center gap-3 rounded-[5px] border border-[var(--color-game-border)] bg-[var(--color-game-cream-active)] px-4 text-sm font-black"><input type="checkbox" {...form.register("isActive")} /> เปิดใช้งาน</label>
+        <label className="item-form-active mt-5 flex min-h-12 items-center gap-3 rounded-[5px] border border-[var(--color-game-border)] bg-[var(--color-game-cream-active)] px-4"><input type="checkbox" {...form.register("isActive")} /> เปิดใช้งาน</label>
         {save.error && <div className="mt-5"><ErrorBox error={save.error} /></div>}
         <ActionBar className="mt-6"><GameButtonLink href="/settings/items" variant="secondary">ยกเลิก</GameButtonLink><GameButton type="submit" disabled={save.isPending || isProcessing || isUploading}>{save.isPending ? "กำลังบันทึก..." : item ? "บันทึกการแก้ไข" : "เพิ่มไอเทม"}</GameButton></ActionBar>
       </GamePanel>

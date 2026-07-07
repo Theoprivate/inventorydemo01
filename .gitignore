@@ -22,6 +22,7 @@ out/
 # Google service-account credentials
 key.json
 **/key.json
+inventorydemo00.json
 
 # logs and editor files
 npm-debug.log*
