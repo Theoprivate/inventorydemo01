@@ -37,6 +37,7 @@ export default function PaperCountPage() {
   const [created, setCreated] = useState<StockCount | null>(null);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [printFrameSrc, setPrintFrameSrc] = useState("");
 
   const validItems = useMemo(() => filterValidItems(items.data ?? []), [items.data]);
   const allPaperItems = useMemo<SelectablePaperItem[]>(() => {
@@ -101,7 +102,8 @@ export default function PaperCountPage() {
   const printHref = created ? `/inventory/count/paper/print?id=${encodeURIComponent(created.countId)}` : "";
   const printDocument = () => {
     if (!created) return;
-    window.open(printHref, "_blank", "noopener,noreferrer");
+    const separator = printHref.includes("?") ? "&" : "?";
+    setPrintFrameSrc(`${printHref}${separator}printAt=${Date.now()}`);
   };
 
   useEffect(() => {
@@ -131,6 +133,16 @@ export default function PaperCountPage() {
   );
 
   return <div className="min-w-0 overflow-x-clip">
+    {printFrameSrc && (
+      <iframe
+        key={printFrameSrc}
+        title="print stock count document"
+        src={printFrameSrc}
+        className="no-print pointer-events-none fixed left-0 top-0 h-0 w-0 border-0 opacity-0"
+        aria-hidden="true"
+        tabIndex={-1}
+      />
+    )}
     <div className="screen-only">
       <PageHeader eyebrow="Stock Count · Paper OCR" title="พิมพ์ใบนับสต๊อก" description="สร้างเอกสาร A4 สำหรับเดินนับสินค้า แล้วนำกลับมาสแกน OCR" actions={<Link className="game-button game-button--secondary game-button--md" href="/inventory/count/scan">ไปหน้าสแกน</Link>} />
       <nav className="mb-5 flex flex-wrap gap-2">
