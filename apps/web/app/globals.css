@@ -289,7 +289,7 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 }
 
 @media print {
-  @page { size: A4 portrait; margin: 0; }
+  @page { size: A4 portrait; margin: 10mm; }
   html,
   body { background: #fff !important; }
   .market-sidebar,
@@ -1199,7 +1199,7 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 }
 
 .document-table__col-code {
-  width: 12%;
+  width: 14%;
 }
 
 .document-table__col-name {
@@ -1227,15 +1227,19 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 }
 
 .document-table__col-count-name {
-  width: 36%;
+  width: 34%;
 }
 
 .document-table__col-count-write {
-  width: 18%;
+  width: 20%;
 }
 
 .document-table__col-count-note {
   width: 18%;
+}
+
+.document-table--stock-count .document-table__col-unit {
+  width: 8%;
 }
 
 .document-table thead {
@@ -1287,9 +1291,12 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 .document-table__item-code {
   color: #5b433b;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-size: 10.5px;
+  font-size: 9.8px;
   font-weight: 600;
   text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .document-table__number {
@@ -1306,12 +1313,218 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 }
 
 .document-table__count-write-cell {
-  height: 10mm;
+  height: 11mm;
   background: #fff;
 }
 
 .document-table--stock-count td {
   vertical-align: middle;
+}
+
+.preview-modal .document-system {
+  min-height: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.preview-modal .document-sheet,
+.print-only-document .document-sheet {
+  width: 210mm;
+  max-width: none;
+}
+
+.preview-modal .document-paper {
+  box-shadow: 0 16px 42px rgba(54, 38, 28, .22);
+}
+
+.preview-modal .stock-count-preview-document {
+  width: 190mm;
+  max-width: none;
+  margin: 0 auto;
+}
+
+.preview-header {
+  min-height: 54px;
+}
+
+.preview-toolbar {
+  min-height: 48px;
+}
+
+.preview-body {
+  background: #d8d2c6;
+}
+
+.preview-canvas {
+  display: flex;
+  min-width: max-content;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 24px;
+  background: #d8d2c6;
+}
+
+.preview-page-wrapper {
+  flex: 0 0 auto;
+  background: #fff;
+  border: 1px solid rgba(91, 47, 26, .18);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .18);
+  transform-origin: top center;
+}
+
+.preview-page-wrapper .stock-count-preview-document {
+  margin: 0;
+}
+
+.preview-footer {
+  min-height: 44px;
+}
+
+.print-only-document .document-system {
+  min-height: auto;
+  background: #fff;
+  padding: 0;
+}
+
+.print-only-document .document-sheet {
+  box-shadow: none;
+}
+
+.print-only-document {
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.stock-count-print-document.print-root {
+  width: 190mm;
+  max-width: none;
+  margin: 0 auto;
+  background: #fff;
+}
+
+.stock-count-print-document .document-sheet {
+  width: 190mm;
+  min-height: auto;
+}
+
+.stock-count-print-document .print-page {
+  width: 190mm;
+  min-height: 277mm;
+  padding: 0;
+  overflow: visible;
+}
+
+.stock-count-print-document .document-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 58mm;
+  min-height: 34mm;
+  max-height: none;
+  gap: 10mm;
+}
+
+.stock-count-print-document .document-brand__logo {
+  display: none;
+}
+
+.stock-count-print-document .document-title-block {
+  min-width: 58mm;
+  text-align: right;
+}
+
+.stock-count-print-document .document-title-block h1 {
+  font-size: 22px;
+}
+
+.stock-count-print-document .document-title-block p {
+  font-size: 12px;
+}
+
+.stock-count-print-document .document-meta--stock-count {
+  display: grid;
+  grid-template-columns: 24mm 24mm minmax(0, 1fr) 16mm;
+}
+
+.stock-count-print-document .count-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.stock-count-print-document .count-table .col-index {
+  width: 10mm;
+}
+
+.stock-count-print-document .count-table .col-code {
+  width: 28mm;
+}
+
+.stock-count-print-document .count-table .col-name {
+  width: 68mm;
+}
+
+.stock-count-print-document .count-table .col-unit {
+  width: 16mm;
+}
+
+.stock-count-print-document .count-table .col-count {
+  width: 38mm;
+}
+
+.stock-count-print-document .count-table .col-note {
+  width: 30mm;
+}
+
+.stock-count-print-document .count-table th,
+.stock-count-print-document .count-table td {
+  border: 1px solid #e0b89a;
+  padding: 3mm 2mm;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.stock-count-print-document .count-table .code-cell {
+  font-size: 9px;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.stock-count-print-document .count-table .name-cell,
+.stock-count-print-document .count-table .document-table__item-name {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.stock-count-print-document .signature-section {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8mm !important;
+  margin-top: 18mm !important;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.stock-count-print-document .signature-box {
+  min-height: 28mm;
+  text-align: center !important;
+}
+
+.stock-count-print-document .signature-line {
+  width: 100%;
+  margin: 0 0 3mm;
+  border-top: 1px solid #5b2f1a;
+}
+
+.stock-count-print-document .signature-name {
+  font-weight: 700;
+  font-size: 10px;
+}
+
+.stock-count-print-document .signature-date {
+  margin-top: 2mm;
+  font-size: 9px;
 }
 
 .document-empty-items,
@@ -1430,15 +1643,25 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
 
 @page {
   size: A4 portrait;
-  margin: 12mm;
+  margin: 10mm;
 }
 
 @media print {
   html,
   body {
     width: 210mm;
+    margin: 0 !important;
+    padding: 0 !important;
     background: #fff !important;
-    overflow-x: hidden !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-shadow: none !important;
   }
 
   body {
@@ -1446,12 +1669,65 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
     print-color-adjust: exact;
   }
 
+  .no-print,
+  .floating-button,
+  .selection-indicator,
+  .page-indicator,
+  input,
+  select,
+  textarea,
+  button,
+  [role="button"],
+  .app-shell,
+  .sidebar,
+  .topbar,
+  .toolbar,
+  .modal-header,
+  .modal-footer,
+  .preview-modal,
+  .preview-overlay,
+  .debug-ui,
   body:has(.document-system) .market-sidebar,
   body:has(.document-system) .market-profile,
   body:has(.document-system) .market-mobile-nav,
   body:has(.document-system) .document-toolbar,
-  body:has(.document-system) button,
-  body:has(.document-system) [role="button"] {
+  body:has(.document-system) .preview-modal header,
+  body:has(.document-system) .preview-modal footer {
+    display: none !important;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    display: none !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+  }
+
+  .no-print::before,
+  .no-print::after,
+  .floating-button::before,
+  .floating-button::after,
+  .selection-indicator::before,
+  .selection-indicator::after,
+  .page-indicator::before,
+  .page-indicator::after,
+  input[type="checkbox"]::before,
+  input[type="checkbox"]::after,
+  input[type="radio"]::before,
+  input[type="radio"]::after,
+  button::before,
+  button::after,
+  [role="button"]::before,
+  [role="button"]::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  body:has(.print-only-document) .preview-modal,
+  body:has(.print-only-document) .preview-overlay,
+  body:has(.print-only-document) .floating-button,
+  body:has(.print-only-document) .selection-indicator,
+  body:has(.print-only-document) .page-indicator {
     display: none !important;
   }
 
@@ -1471,7 +1747,7 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
   }
 
   body:has(.document-system) .document-sheet {
-    width: auto !important;
+    width: 190mm !important;
     min-height: auto !important;
     margin: 0 !important;
     box-shadow: none !important;
@@ -1481,6 +1757,158 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
     min-height: auto !important;
     padding: 0 !important;
     box-shadow: none !important;
+  }
+
+  .print-only-document,
+  .print-root,
+  .stock-count-print-document.print-root {
+    display: block !important;
+    width: 190mm !important;
+    max-width: none !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
+    transform: none !important;
+  }
+
+  .print-root .document-sheet,
+  .stock-count-print-document .document-sheet {
+    display: block !important;
+    width: 190mm !important;
+    max-width: none !important;
+    min-height: auto !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
+    transform: none !important;
+  }
+
+  .print-page,
+  .stock-count-print-document .print-page {
+    display: block !important;
+    width: 190mm !important;
+    max-width: none !important;
+    min-height: 277mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
+    transform: none !important;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .print-page:last-child,
+  .stock-count-print-document .print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .stock-count-print-document .document-header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 58mm !important;
+    min-height: 34mm !important;
+    max-height: none !important;
+    gap: 10mm !important;
+  }
+
+  .stock-count-print-document .document-brand__logo {
+    display: none !important;
+  }
+
+  .stock-count-print-document .document-footer,
+  .stock-count-print-document .document-signatures {
+    display: grid !important;
+  }
+
+  .stock-count-print-document .signature-section {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8mm !important;
+    margin-top: 18mm !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .stock-count-print-document .signature-box {
+    min-height: 28mm !important;
+    text-align: center !important;
+  }
+
+  .stock-count-print-document .signature-line {
+    width: 100% !important;
+    margin: 0 0 3mm !important;
+    border-top: 1px solid #5b2f1a !important;
+  }
+
+  .stock-count-print-document .document-title-block {
+    min-width: 58mm !important;
+    text-align: right !important;
+  }
+
+  .stock-count-print-document .document-meta--stock-count {
+    display: grid !important;
+    grid-template-columns: 24mm 24mm minmax(0, 1fr) 16mm !important;
+  }
+
+  body:has(.document-system) .document-table {
+    table-layout: fixed;
+    border-collapse: collapse;
+  }
+
+  .stock-count-print-document .count-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+  }
+
+  .stock-count-print-document .count-table .col-index {
+    width: 10mm !important;
+  }
+
+  .stock-count-print-document .count-table .col-code {
+    width: 28mm !important;
+  }
+
+  .stock-count-print-document .count-table .col-name {
+    width: 68mm !important;
+  }
+
+  .stock-count-print-document .count-table .col-unit {
+    width: 16mm !important;
+  }
+
+  .stock-count-print-document .count-table .col-count {
+    width: 38mm !important;
+  }
+
+  .stock-count-print-document .count-table .col-note {
+    width: 30mm !important;
+  }
+
+  .stock-count-print-document .count-table th,
+  .stock-count-print-document .count-table td {
+    border: 1px solid #e0b89a !important;
+    padding: 3mm 2mm !important;
+    vertical-align: middle !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+  }
+
+  .stock-count-print-document .count-table .code-cell {
+    font-size: 9px !important;
+    line-height: 1.25 !important;
+    text-align: center !important;
+  }
+
+  .stock-count-print-document .count-table .name-cell,
+  .stock-count-print-document .count-table .document-table__item-name {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    line-height: 1.35 !important;
   }
 
   body:has(.document-system) .document-paper--page-break {
@@ -1493,15 +1921,13 @@ input[type="radio"] { width: 18px; height: 18px; accent-color: var(--color-game-
     overflow: visible !important;
   }
 
-  body:has(.document-system) .document-table {
-    table-layout: fixed;
-  }
-
   body:has(.document-system) .document-table thead {
     display: table-header-group;
   }
 
   body:has(.document-system) .document-table tr,
+  body:has(.document-system) .document-table td,
+  body:has(.document-system) .document-table th,
   body:has(.document-system) .document-signatures,
   body:has(.document-system) .document-footer {
     break-inside: avoid;
